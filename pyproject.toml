@@ -1,0 +1,9 @@
+[project]
+name = "integracion-siesa"
+version = "0.1.0"
+description = "Integracion de pagos de Google Sheets/Alegra hacia Siesa HUB ReciboCaja."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
