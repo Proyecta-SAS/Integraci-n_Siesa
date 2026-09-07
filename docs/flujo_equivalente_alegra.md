@@ -18,8 +18,8 @@ Esto alinea el desarrollo con el conector `142888 - API_v1_ReciboCaja`. En este 
 
 | Componente | Necesario | Uso |
 | --- | --- | --- |
-| Visual Avanzar | Si | Panel interno para seleccionar compania/modulo, revisar estados y activar envios. |
-| Google Sheets | Si | Bandeja de entrada con la estructura ya usada por Alegra. |
+| Visual Avanzar | Si | Panel interno para revisar estados y activar envios del flujo Alianza. |
+| Google Sheets | Si | Bandeja de entrada compartida por Avanzar: `ALEGRA - ALIANZA JURIDICA AVANZAR` / `Ingreso / Egreso`. |
 | PowerShell | Si | Ejecuta el sincronizador manualmente o por tarea programada. |
 | Python `siesa_payments` | Si | Lee, valida, mapea y envia a Siesa HUB. |
 | Credenciales Siesa HUB | Si | Token, host QA/prod y path real del conector. |
@@ -32,11 +32,16 @@ Esto alinea el desarrollo con el conector `142888 - API_v1_ReciboCaja`. En este 
 1. La automatizacion actual escribe la fila en Sheets.
 2. Windows Task Scheduler ejecuta `scripts/Invoke-SiesaPaymentSync.ps1`.
 3. El sincronizador lee la pestaña por URL CSV o un CSV exportado.
-4. Se validan campos obligatorios y tipo de transaccion `Ingreso`.
-5. Se genera `externalReference` para idempotencia.
-6. Se envia el payload a `142888 - API_v1_ReciboCaja`.
-7. Se guarda auditoria en `logs/siesa_payments.jsonl`.
-8. Se guarda estado en `.state/siesa_payments_state.json` para evitar duplicados.
+4. Se clasifica la fila con la misma logica del router Make/Alegra:
+   - `existing_contact_receipt`: `Cliente` no contiene `CREAR`.
+   - `create_person_contact_receipt`: `Cliente` contiene `CREAR` y es persona natural/CC.
+   - `create_legal_contact_receipt`: `Cliente` contiene `CREAR` y es persona juridica/NIT.
+   - `create_client_provider_receipt`: `Cliente / Proveedor`.
+5. Se validan campos obligatorios y tipo de transaccion `Ingreso`.
+6. Se genera `externalReference` para idempotencia.
+7. Se envia el payload a `142888 - API_v1_ReciboCaja`.
+8. Se guarda auditoria en `logs/siesa_payments.jsonl`.
+9. Se guarda estado en `.state/siesa_payments_state.json` para evitar duplicados.
 
 ## Punto pendiente critico
 
@@ -68,4 +73,16 @@ Registrar tarea cada 5 minutos en QA:
 2. Validar autenticacion y permisos del conector `142888`.
 3. Obtener contrato JSON exacto de `API_v1_ReciboCaja`.
 4. Ajustar `config/siesa_recibo_caja_mapping.json`.
-5. Conectar la visual con el backend para listar filas, validar y enviar.
+5. Confirmar con Siesa si la creacion/validacion de terceros va dentro de `ReciboCaja` o requiere otro conector previo.
+6. Conectar la visual con el backend para listar filas, validar, mostrar ruta calculada y enviar.
+
+## Blueprint Make/Alegra
+
+El escenario `Alianza Juridica Avanzar` ya fue copiado a `references/make/alianza_juridica_avanzar.blueprint.json`.
+
+Archivos derivados:
+
+- `docs/analisis_blueprint_make_alegra.md`: resumen funcional del flujo.
+- `config/alegra_flow_rules.json`: condiciones, rutas y mapas pequenos.
+- `config/alegra_catalogs_from_make.json`: catalogos grandes extraidos de formulas Make.
+- `docs/make_blueprint_inventory.json`: inventario de modulos.

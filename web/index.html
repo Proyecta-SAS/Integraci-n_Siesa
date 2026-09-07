@@ -3,228 +3,56 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Avanzar | Activador Siesa</title>
+    <title>Avanzar | Activadores Siesa</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <div class="app-shell">
-      <aside class="sidebar" aria-label="Navegacion principal">
-        <div class="brand-block">
+    <main class="launcher" aria-label="Activadores Sistemas Contables Siesa">
+      <section class="launcher-panel">
+        <div class="logo-frame">
           <img src="./assets/avanzar-logo-color.svg" alt="Avanzar">
-          <div>
-            <strong>Activador Siesa</strong>
-            <span>Pagos y recibos de caja</span>
-          </div>
         </div>
 
-        <nav class="nav-group" aria-label="Modulos">
-          <button class="nav-item active" type="button" data-section="overview">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h7V4H4v9Zm0 7h7v-5H4v5Zm9 0h7v-9h-7v9Zm0-16v5h7V4h-7Z"/></svg>
-            Panel operativo
+        <div class="title-block">
+          <h1>Activadores Sistemas Contables Siesa</h1>
+          <span aria-hidden="true"></span>
+        </div>
+
+        <nav class="activator-grid" aria-label="Activadores Siesa">
+          <button class="activator-button" type="button" data-company="antiguo">
+            Siesa Antiguo
           </button>
-          <button class="nav-item" type="button" data-section="sheets">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5V3Zm9 1.8V8h3.2L14 4.8ZM8 11h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg>
-            Google Sheets
+          <button class="activator-button" type="button" data-company="lidera">
+            Siesa Lidera
           </button>
-          <button class="nav-item" type="button" data-section="siesa">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.4 9.7 8 10 4.6-.3 8-5 8-10V6l-8-4Zm0 3.2L17 7.7V12c0 3.6-2.1 6.5-5 7-2.9-.5-5-3.4-5-7V7.7l5-2.5Z"/></svg>
-            Siesa HUB
+          <button class="activator-button active" type="button" data-company="alianza">
+            Siesa Alianza
           </button>
-          <button class="nav-item" type="button" data-section="audit">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l3 3v17H6V2Zm8 1.8V6h2.2L14 3.8ZM8 9h8v2H8V9Zm0 4h8v2H8v-2Zm0 4h5v2H8v-2Z"/></svg>
-            Trazabilidad
+          <button class="activator-button" type="button" data-company="prosperar">
+            Siesa Prosperar
           </button>
         </nav>
 
-        <div class="module-tree">
-          <p>Ruta Siesa</p>
-          <button type="button">Financiero</button>
-          <button type="button">Cuentas x cobrar</button>
-          <button type="button">Punto de recaudo</button>
-          <button class="selected" type="button">Recibos de caja</button>
-          <button class="child current" type="button">Clientes</button>
-          <button class="child" type="button">Otros ingresos</button>
-        </div>
-
-        <div class="sidebar-status">
-          <span class="pulse"></span>
+        <section class="status-panel" aria-live="polite">
           <div>
-            <strong>QA preparado</strong>
-            <small>Falta token y contrato final</small>
+            <span class="status-label">Modulo activo</span>
+            <strong id="selectedCompany">Siesa Alianza</strong>
           </div>
-        </div>
-      </aside>
-
-      <main class="main">
-        <header class="topbar">
           <div>
-            <span class="breadcrumb">Avanzar / Financiero / Siesa</span>
-            <h1>Activadores Sistemas Contables Siesa</h1>
+            <span class="status-label">Fuente</span>
+            <strong>Google Sheets / Ingreso - Egreso</strong>
           </div>
-          <div class="top-actions">
-            <button class="ghost-button" type="button" id="validateBtn">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 15.2 7.1-7.1 1.4 1.4-8.5 8.5-4.5-4.5 1.4-1.4 3.1 3.1Z"/></svg>
-              Validar
-            </button>
-            <button class="primary-button" type="button" id="syncBtn">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6c3.3 0 6 2.7 6 6 0 1-.2 1.9-.7 2.7l1.5 1.5c.8-1.2 1.2-2.6 1.2-4.2 0-4.4-3.6-8-8-8Zm-6 8c0-1 .2-1.9.7-2.7L5.2 7.8C4.4 9 4 10.4 4 12c0 4.4 3.6 8 8 8v3l4-4-4-4v3c-3.3 0-6-2.7-6-6Z"/></svg>
-              Sincronizar QA
-            </button>
+          <div>
+            <span class="status-label">Destino</span>
+            <strong>Recibos de caja / Clientes</strong>
           </div>
-        </header>
-
-        <section class="company-strip" aria-label="Companias disponibles">
-          <button class="company-card active" type="button" data-company="Alianza">
-            <span>Alianza</span>
-            <strong>ALEGRA - ALIANZA</strong>
-            <small>Recibos clientes</small>
-          </button>
-          <button class="company-card" type="button" data-company="Lidera">
-            <span>Lidera</span>
-            <strong>ALEGRA - LIDERA</strong>
-            <small>Sheets activo</small>
-          </button>
-          <button class="company-card" type="button" data-company="Prosperar">
-            <span>Prosperar</span>
-            <strong>ALEGRA - PROSPERAR</strong>
-            <small>Mapeo pendiente</small>
-          </button>
-          <button class="company-card" type="button" data-company="Antiguo">
-            <span>Historico</span>
-            <strong>ALEGRA ANTIGUO</strong>
-            <small>Solo consulta</small>
-          </button>
-        </section>
-
-        <section class="hero-panel">
-          <div class="hero-copy">
-            <p class="eyebrow">Modulo activo</p>
-            <h2>Recibos de caja / Clientes</h2>
-            <p>Controla las filas que llegan desde Google Sheets, valida catalogos Siesa y registra pagos con trazabilidad operativa.</p>
-          </div>
-          <div class="environment-switch" role="group" aria-label="Ambiente">
-            <button class="active" type="button">QA</button>
-            <button type="button">Prod</button>
+          <div>
+            <span class="status-label">Conector</span>
+            <strong>142888 - API_v1_ReciboCaja</strong>
           </div>
         </section>
-
-        <section class="kpi-grid" aria-label="Indicadores">
-          <article class="kpi-card">
-            <span>Pendientes Sheets</span>
-            <strong>18</strong>
-            <small>nuevas filas por revisar</small>
-          </article>
-          <article class="kpi-card">
-            <span>Listos QA</span>
-            <strong>16</strong>
-            <small>sin errores de validacion</small>
-          </article>
-          <article class="kpi-card warn">
-            <span>Novedades</span>
-            <strong>2</strong>
-            <small>requieren catalogo Siesa</small>
-          </article>
-          <article class="kpi-card ok">
-            <span>Procesados</span>
-            <strong>124</strong>
-            <small>con externalReference</small>
-          </article>
-        </section>
-
-        <section class="content-grid">
-          <article class="card queue-card">
-            <div class="card-header">
-              <div>
-                <h3>Bandeja de activacion</h3>
-                <p>Pagos entrantes con estructura Alegra, preparados para Siesa HUB.</p>
-              </div>
-              <div class="compact-filters">
-                <select id="statusFilter" aria-label="Estado">
-                  <option value="all">Todos</option>
-                  <option value="ok">Validado</option>
-                  <option value="warn">Catalogo</option>
-                  <option value="pending">Pendiente</option>
-                </select>
-                <input id="searchInput" type="search" placeholder="Buscar cliente">
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fila</th>
-                    <th>Cliente</th>
-                    <th>Documento</th>
-                    <th>Metodo</th>
-                    <th>Valor</th>
-                    <th>Estado</th>
-                    <th>Accion</th>
-                  </tr>
-                </thead>
-                <tbody id="paymentRows">
-                  <tr data-status="ok">
-                    <td>24</td>
-                    <td>Alianza Juridica Avanzar</td>
-                    <td>900123456</td>
-                    <td>Transferencia</td>
-                    <td>$ 480.000</td>
-                    <td><span class="chip ok">Validado</span></td>
-                    <td><button class="row-action" type="button">Enviar</button></td>
-                  </tr>
-                  <tr data-status="warn">
-                    <td>25</td>
-                    <td>Maria Fernanda Perez</td>
-                    <td>52.833.138</td>
-                    <td>Consignacion</td>
-                    <td>$ 170.000</td>
-                    <td><span class="chip warn">Catalogo</span></td>
-                    <td><button class="row-action ghost" type="button">Revisar</button></td>
-                  </tr>
-                  <tr data-status="pending">
-                    <td>26</td>
-                    <td>Consumidor Final</td>
-                    <td>222222222</td>
-                    <td>Efectivo</td>
-                    <td>$ 350.000</td>
-                    <td><span class="chip neutral">Pendiente</span></td>
-                    <td><button class="row-action ghost" type="button">Validar</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </article>
-
-          <aside class="side-stack">
-            <article class="card api-card">
-              <div class="card-header small">
-                <h3>API Siesa</h3>
-                <span class="chip info">QA</span>
-              </div>
-              <dl>
-                <div><dt>Conector</dt><dd>142888</dd></div>
-                <div><dt>Operacion</dt><dd>API_v1_ReciboCaja</dd></div>
-                <div><dt>Modulo</dt><dd>Clientes</dd></div>
-                <div><dt>Estado</dt><dd>Contrato pendiente</dd></div>
-              </dl>
-            </article>
-
-            <article class="card audit-card">
-              <div class="card-header small">
-                <h3>Actividad</h3>
-                <button class="icon-only" type="button" title="Actualizar">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6c3.3 0 6 2.7 6 6h2c0-4.4-3.6-8-8-8ZM6 12H4c0 4.4 3.6 8 8 8v3l4-4-4-4v3c-3.3 0-6-2.7-6-6Z"/></svg>
-                </button>
-              </div>
-              <ol class="timeline" id="timeline">
-                <li><time>14:35</time><span>Visual Avanzar aplicada</span></li>
-                <li><time>14:32</time><span>Modulo Siesa identificado</span></li>
-                <li><time>14:26</time><span>Sheets Alegra revisado</span></li>
-              </ol>
-            </article>
-          </aside>
-        </section>
-      </main>
-    </div>
+      </section>
+    </main>
     <script src="./app.js"></script>
   </body>
 </html>

@@ -1,0 +1,131 @@
+{
+  "source_blueprint": "references/make/alianza_juridica_avanzar.blueprint.json",
+  "modules": [
+    {
+      "path": "root",
+      "id": 48,
+      "module": "gateway:CustomWebHook",
+      "name": ""
+    },
+    {
+      "path": "root",
+      "id": 14,
+      "module": "google-sheets:filterRows",
+      "name": ""
+    },
+    {
+      "path": "root",
+      "id": 17,
+      "module": "builtin:BasicRouter",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_0",
+      "id": 10,
+      "module": "util:SetVariables",
+      "name": "Condicionales"
+    },
+    {
+      "path": "root/17:route_0",
+      "id": 3,
+      "module": "alegra:UniversalMakeApiCall",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_0",
+      "id": 15,
+      "module": "google-sheets:deleteRow",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1",
+      "id": 20,
+      "module": "util:SetVariables",
+      "name": "Condicionales"
+    },
+    {
+      "path": "root/17:route_1",
+      "id": 22,
+      "module": "builtin:BasicRouter",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_0",
+      "id": 21,
+      "module": "alegra:ActionCreateContactMerged",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_0",
+      "id": 25,
+      "module": "alegra:UniversalMakeApiCall",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_0",
+      "id": 24,
+      "module": "google-sheets:deleteRow",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_1",
+      "id": 23,
+      "module": "alegra:ActionCreateContactMerged",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_1",
+      "id": 26,
+      "module": "alegra:UniversalMakeApiCall",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_1",
+      "id": 27,
+      "module": "google-sheets:deleteRow",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_2",
+      "id": 36,
+      "module": "builtin:BasicRouter",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_2/36:route_0",
+      "id": 35,
+      "module": "alegra:ActionCreateContactMerged",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_2/36:route_0",
+      "id": 42,
+      "module": "alegra:UniversalMakeApiCall",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_2/36:route_0",
+      "id": 44,
+      "module": "google-sheets:deleteRow",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_2/36:route_1",
+      "id": 37,
+      "module": "alegra:ActionCreateContactMerged",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_2/36:route_1",
+      "id": 38,
+      "module": "alegra:UniversalMakeApiCall",
+      "name": ""
+    },
+    {
+      "path": "root/17:route_1/22:route_2/36:route_1",
+      "id": 40,
+      "module": "google-sheets:deleteRow",
+      "name": ""
+    }
+  ]
+}

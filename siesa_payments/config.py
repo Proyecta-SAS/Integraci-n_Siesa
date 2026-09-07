@@ -23,13 +23,16 @@ class RuntimeConfig:
     mapping_file: Path
     state_file: Path
     log_file: Path
+    siesa_connector_url: str | None
     hub_base_url: str | None
     hub_connector_id: str
     hub_operation: str
-    hub_token: str | None
-    hub_auth_scheme: str
+    siesa_connikey: str | None
+    siesa_connitoken: str | None
+    siesa_id_compania: str | None
+    siesa_id_documento: str
+    siesa_nombre_documento: str
     hub_execute_path: str
-    hub_metadata_path: str
 
     @classmethod
     def from_env(cls) -> "RuntimeConfig":
@@ -41,13 +44,16 @@ class RuntimeConfig:
             mapping_file=Path(os.getenv("SIESA_CONFIG_FILE", "config/siesa_recibo_caja_mapping.json")),
             state_file=Path(os.getenv("SIESA_STATE_FILE", ".state/siesa_payments_state.json")),
             log_file=Path(os.getenv("SIESA_LOG_FILE", "logs/siesa_payments.jsonl")),
+            siesa_connector_url=os.getenv("SIESA_CONNECTOR_URL") or None,
             hub_base_url=os.getenv("SIESA_HUB_BASE_URL") or None,
             hub_connector_id=os.getenv("SIESA_HUB_CONNECTOR_ID", "142888"),
             hub_operation=os.getenv("SIESA_HUB_OPERATION", "API_v1_ReciboCaja"),
-            hub_token=os.getenv("SIESA_HUB_TOKEN") or None,
-            hub_auth_scheme=os.getenv("SIESA_HUB_AUTH_SCHEME", "Bearer"),
-            hub_execute_path=os.getenv("SIESA_HUB_EXECUTE_PATH", "/api/v1/connectors/{connector_id}/execute"),
-            hub_metadata_path=os.getenv("SIESA_HUB_METADATA_PATH", "/api/v1/connectors/{connector_id}"),
+            siesa_connikey=os.getenv("SIESA_CONN_KEY") or os.getenv("SIESA_CONNIKEY") or None,
+            siesa_connitoken=os.getenv("SIESA_CONN_TOKEN") or os.getenv("SIESA_CONNITOKEN") or None,
+            siesa_id_compania=os.getenv("SIESA_ID_COMPANIA") or None,
+            siesa_id_documento=os.getenv("SIESA_ID_DOCUMENTO", "142888"),
+            siesa_nombre_documento=os.getenv("SIESA_NOMBRE_DOCUMENTO", "API_v1_ReciboCaja"),
+            hub_execute_path=os.getenv("SIESA_HUB_EXECUTE_PATH", "/api/v1/conectores"),
         )
 
 

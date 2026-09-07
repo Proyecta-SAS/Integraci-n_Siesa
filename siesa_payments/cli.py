@@ -7,6 +7,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .config import MappingConfig, RuntimeConfig
+from .contract import compare_contract_to_mapping, load_contract_body
 from .siesa_hub import SiesaHubClient
 from .sync import PaymentSyncService
 
@@ -21,13 +22,16 @@ def _load_runtime(args: argparse.Namespace) -> RuntimeConfig:
         mapping_file=Path(args.config_file) if args.config_file else runtime.mapping_file,
         state_file=Path(args.state_file) if args.state_file else runtime.state_file,
         log_file=Path(args.log_file) if args.log_file else runtime.log_file,
+        siesa_connector_url=args.connector_url or runtime.siesa_connector_url,
         hub_base_url=args.hub_base_url or runtime.hub_base_url,
         hub_connector_id=args.connector_id or runtime.hub_connector_id,
         hub_operation=args.operation or runtime.hub_operation,
-        hub_token=args.hub_token or runtime.hub_token,
-        hub_auth_scheme=args.auth_scheme or runtime.hub_auth_scheme,
+        siesa_connikey=args.connikey or runtime.siesa_connikey,
+        siesa_connitoken=args.connitoken or runtime.siesa_connitoken,
+        siesa_id_compania=args.id_compania or runtime.siesa_id_compania,
+        siesa_id_documento=args.id_documento or runtime.siesa_id_documento,
+        siesa_nombre_documento=args.nombre_documento or runtime.siesa_nombre_documento,
         hub_execute_path=args.execute_path or runtime.hub_execute_path,
-        hub_metadata_path=args.metadata_path or runtime.hub_metadata_path,
     )
 
 
@@ -55,19 +59,30 @@ def cmd_sync(args: argparse.Namespace) -> int:
 def cmd_validate_connector(args: argparse.Namespace) -> int:
     runtime = _load_runtime(args)
     mapping = _load_mapping(runtime)
-    if not runtime.hub_base_url or not runtime.hub_token:
-        print("Configure SIESA_HUB_BASE_URL y SIESA_HUB_TOKEN.", file=sys.stderr)
+    if not runtime.siesa_connikey or not runtime.siesa_connitoken or not runtime.siesa_id_compania:
+        print("Configure SIESA_CONN_KEY, SIESA_CONN_TOKEN y SIESA_ID_COMPANIA.", file=sys.stderr)
         return 2
     client = SiesaHubClient(
         base_url=runtime.hub_base_url,
-        token=runtime.hub_token,
-        auth_scheme=runtime.hub_auth_scheme,
+        connector_url=runtime.siesa_connector_url,
+        connikey=runtime.siesa_connikey,
+        connitoken=runtime.siesa_connitoken,
+        id_compania=runtime.siesa_id_compania,
+        id_documento=runtime.siesa_id_documento,
+        nombre_documento=runtime.siesa_nombre_documento,
         execute_path=runtime.hub_execute_path,
-        metadata_path=runtime.hub_metadata_path,
     )
-    response = client.validate_connector(mapping.connector_id)
-    print(json.dumps({"ok": response.ok, "status_code": response.status_code, "data": response.data}, indent=2, ensure_ascii=False))
-    return 0 if response.ok else 2
+    print(json.dumps({"ok": True, "connector": mapping.connector_id, "request": client.connection_summary()}, indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_inspect_contract(args: argparse.Namespace) -> int:
+    runtime = _load_runtime(args)
+    mapping = _load_mapping(runtime)
+    contract_body = load_contract_body(Path(args.contract_file))
+    comparison = compare_contract_to_mapping(contract_body, mapping)
+    print(json.dumps(asdict(comparison), indent=2, ensure_ascii=False))
+    return 0 if comparison.ok else 2
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -80,13 +95,16 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--sheets-csv-url", help="URL export CSV de Google Sheets.")
     common.add_argument("--state-file", help="Archivo de estado para deduplicacion.")
     common.add_argument("--log-file", help="Archivo JSONL de auditoria.")
+    common.add_argument("--connector-url", help="URL completa copiada desde la guia del conector.")
     common.add_argument("--hub-base-url", help="Base URL de Siesa HUB.")
-    common.add_argument("--hub-token", help="Token de Siesa HUB.")
-    common.add_argument("--auth-scheme", help="Esquema Authorization, por defecto Bearer.")
+    common.add_argument("--connikey", help="Header Connikey copiado desde el Documentador.")
+    common.add_argument("--connitoken", help="Header Connitoken copiado desde el Documentador.")
+    common.add_argument("--id-compania", help="Parametro idCompania del conector.")
+    common.add_argument("--id-documento", help="Parametro idDocumento del conector.")
+    common.add_argument("--nombre-documento", help="Parametro nombreDocumento del conector.")
     common.add_argument("--connector-id", help="ID de conector Siesa HUB.")
     common.add_argument("--operation", help="Operacion del conector.")
     common.add_argument("--execute-path", help="Path parametrizado de ejecucion del conector.")
-    common.add_argument("--metadata-path", help="Path parametrizado de metadata del conector.")
 
     subparsers = parser.add_subparsers(dest="command")
     sync_parser = subparsers.add_parser("sync", parents=[common], help="Valida y sincroniza pagos.")
@@ -97,6 +115,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate_parser = subparsers.add_parser("validate-connector", parents=[common], help="Consulta metadata del conector.")
     validate_parser.set_defaults(func=cmd_validate_connector, dry_run=None)
+
+    inspect_parser = subparsers.add_parser("inspect-contract", parents=[common], help="Compara el Body Siesa contra el mapeo local.")
+    inspect_parser.add_argument("--contract-file", required=True, help="JSON del Body copiado desde el Documentador Siesa.")
+    inspect_parser.set_defaults(func=cmd_inspect_contract, dry_run=None)
     return parser
 
 

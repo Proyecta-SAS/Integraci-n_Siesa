@@ -110,11 +110,15 @@ class PaymentRow:
             source_row=source_row,
         )
 
-    def to_payload_value(self, field_name: str) -> Any:
+    def to_payload_value(self, field_name: str, value_format: str | None = None) -> Any:
         value = getattr(self, field_name)
         if isinstance(value, date):
+            if value_format == "yyyymmdd":
+                return value.strftime("%Y%m%d")
             return value.isoformat()
         if isinstance(value, Decimal):
+            if value_format == "string":
+                return format(value, "f")
             return float(value)
         return value
 

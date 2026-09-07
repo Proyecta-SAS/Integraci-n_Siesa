@@ -11,15 +11,43 @@ class MappingError(RuntimeError):
     pass
 
 
+def _new_container(next_part: str) -> dict[str, Any] | list[Any]:
+    return [] if next_part.isdigit() else {}
+
+
+def _ensure_list_index(items: list[Any], index: int, next_part: str | None) -> None:
+    while len(items) <= index:
+        items.append(_new_container(next_part or ""))
+
+
 def _set_dotted(target: dict[str, Any], dotted_path: str, value: Any) -> None:
-    current = target
+    current: dict[str, Any] | list[Any] = target
     parts = dotted_path.split(".")
-    for part in parts[:-1]:
-        node = current.setdefault(part, {})
-        if not isinstance(node, dict):
+    for index, part in enumerate(parts):
+        is_last = index == len(parts) - 1
+        next_part = None if is_last else parts[index + 1]
+
+        if part.isdigit():
+            if not isinstance(current, list):
+                raise MappingError(f"ruta de payload invalida: {dotted_path}")
+            item_index = int(part)
+            _ensure_list_index(current, item_index, next_part)
+            if is_last:
+                current[item_index] = value
+            else:
+                current = current[item_index]
+            continue
+
+        if not isinstance(current, dict):
             raise MappingError(f"ruta de payload invalida: {dotted_path}")
+        if is_last:
+            current[part] = value
+            continue
+        node = current.get(part)
+        if not isinstance(node, (dict, list)):
+            node = _new_container(next_part or "")
+            current[part] = node
         current = node
-    current[parts[-1]] = value
 
 
 def build_payload(payment: PaymentRow, mapping: MappingConfig) -> dict[str, Any]:
@@ -43,7 +71,7 @@ def build_payload(payment: PaymentRow, mapping: MappingConfig) -> dict[str, Any]
             field_name = str(rule.get("field", ""))
             if field_name not in PAYMENT_FIELD_NAMES:
                 raise MappingError(f"campo de pago desconocido en mapping: {field_name}")
-            value = payment.to_payload_value(field_name)
+            value = payment.to_payload_value(field_name, rule.get("format"))
         else:
             raise MappingError(f"source de mapping no soportado: {source!r}")
         _set_dotted(payload, target_path, value)

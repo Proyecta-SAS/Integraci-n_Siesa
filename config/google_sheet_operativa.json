@@ -1,0 +1,16 @@
+{
+  "spreadsheet_id": "1TuXSZESNm1xJGJvXLMKTq2bAY1ZvmCl6n8Aez1FRVp8",
+  "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1TuXSZESNm1xJGJvXLMKTq2bAY1ZvmCl6n8Aez1FRVp8/edit",
+  "title": "ALEGRA - ALIANZA JURIDICA AVANZAR",
+  "operational_sheet": {
+    "sheet_id": 0,
+    "title": "Ingreso / Egreso",
+    "header_range": "A1:V1",
+    "csv_export_url": "https://docs.google.com/spreadsheets/d/1TuXSZESNm1xJGJvXLMKTq2bAY1ZvmCl6n8Aez1FRVp8/export?format=csv&gid=0"
+  },
+  "catalog_sheet": {
+    "sheet_id": 529983792,
+    "title": "ID"
+  },
+  "usage": "Fuente operativa actual para leer filas y crear recibos de caja en Siesa. El blueprint Make/Alegra solo queda como referencia de comportamiento."
+}

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .config import MappingConfig, RuntimeConfig
+from .flow import FlowDecision, decide_flow
 from .mapper import build_payload
 from .models import PaymentRow
 from .siesa_hub import SiesaHubClient
@@ -27,7 +28,13 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _event(status: str, payment: PaymentRow, payload: dict[str, Any] | None = None, **extra: Any) -> dict[str, Any]:
+def _event(
+    status: str,
+    payment: PaymentRow,
+    payload: dict[str, Any] | None = None,
+    flow: FlowDecision | None = None,
+    **extra: Any,
+) -> dict[str, Any]:
     event = {
         "timestamp": _now(),
         "status": status,
@@ -37,6 +44,9 @@ def _event(status: str, payment: PaymentRow, payload: dict[str, Any] | None = No
         "amount": str(payment.amount),
         "payment_date": payment.payment_date.isoformat(),
     }
+    if flow is not None:
+        event["flow"] = flow.key
+        event["siesa_target"] = flow.siesa_target
     if payload is not None:
         event["payload"] = payload
     event.update(extra)
@@ -60,14 +70,17 @@ class PaymentSyncService:
     def _client(self) -> SiesaHubClient:
         if self.client is not None:
             return self.client
-        if not self.runtime.hub_base_url or not self.runtime.hub_token:
-            raise RuntimeError("configure SIESA_HUB_BASE_URL y SIESA_HUB_TOKEN para enviar a Siesa")
+        if not self.runtime.siesa_connikey or not self.runtime.siesa_connitoken or not self.runtime.siesa_id_compania:
+            raise RuntimeError("configure SIESA_CONN_KEY, SIESA_CONN_TOKEN y SIESA_ID_COMPANIA para enviar a Siesa")
         return SiesaHubClient(
             base_url=self.runtime.hub_base_url,
-            token=self.runtime.hub_token,
-            auth_scheme=self.runtime.hub_auth_scheme,
+            connector_url=self.runtime.siesa_connector_url,
+            connikey=self.runtime.siesa_connikey,
+            connitoken=self.runtime.siesa_connitoken,
+            id_compania=self.runtime.siesa_id_compania,
+            id_documento=self.runtime.siesa_id_documento,
+            nombre_documento=self.runtime.siesa_nombre_documento,
             execute_path=self.runtime.hub_execute_path,
-            metadata_path=self.runtime.hub_metadata_path,
         )
 
     def sync(self, dry_run: bool | None = None) -> SyncResult:
@@ -83,28 +96,29 @@ class PaymentSyncService:
 
         for payment in iter_payments(self.runtime.input_csv, self.runtime.sheets_csv_url, self.mapping):
             counters["processed"] += 1
+            flow = decide_flow(payment)
             key = payment.idempotency_key()
             issues = self.validator.validate(payment)
             if issues:
                 counters["invalid"] += 1
-                self.log.write(_event("invalid", payment, issues=[issue.__dict__ for issue in issues]))
+                self.log.write(_event("invalid", payment, flow=flow, issues=[issue.__dict__ for issue in issues]))
                 continue
             if self.state.contains(key):
                 counters["skipped_duplicates"] += 1
-                self.log.write(_event("duplicate", payment))
+                self.log.write(_event("duplicate", payment, flow=flow))
                 continue
 
             payload = build_payload(payment, self.mapping)
             if is_dry_run:
                 counters["dry_run"] += 1
-                self.log.write(_event("dry_run", payment, payload=payload))
+                self.log.write(_event("dry_run", payment, payload=payload, flow=flow))
                 continue
 
             response = self._client().register_cash_receipt(self.mapping.connector_id, payload, key)
             if response.ok:
                 counters["sent"] += 1
                 self.state.add(key)
-                self.log.write(_event("sent", payment, payload=payload, siesa_response=response.data))
+                self.log.write(_event("sent", payment, payload=payload, flow=flow, siesa_response=response.data))
             else:
                 counters["failed"] += 1
                 self.log.write(
@@ -112,6 +126,7 @@ class PaymentSyncService:
                         "failed",
                         payment,
                         payload=payload,
+                        flow=flow,
                         siesa_status_code=response.status_code,
                         siesa_response=response.data,
                     )

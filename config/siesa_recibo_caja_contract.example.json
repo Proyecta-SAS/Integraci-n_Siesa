@@ -1,0 +1,35 @@
+{
+  "Inicial": [
+    {
+      "F_CIA": ""
+    }
+  ],
+  "ReciboCaja": [
+    {
+      "F_CIA": "",
+      "F_ID_TIPO_DOCTO": "",
+      "F_FECHA": "",
+      "F_ID_CAJA": "",
+      "F_ID_MEDIO_PAGO": "",
+      "F_CUENTA_BANCARIA": "",
+      "F_ID_CENTRO_COSTO": "",
+      "F_ID_CONCEPTO": "",
+      "F_CANTIDAD": "",
+      "F_VALOR": "",
+      "F_NOTAS": "",
+      "F_OBSERVACIONES": "",
+      "F_REFERENCIA_EXTERNA": "",
+      "F_TERCERO_TIPO_IDENT": "",
+      "F_TERCERO_NIT": "",
+      "F_TERCERO_NOMBRE": "",
+      "F_TERCERO_APELLIDO": "",
+      "F_TERCERO_DIRECCION": "",
+      "F_TERCERO_CIUDAD_DEPTO": ""
+    }
+  ],
+  "Final": [
+    {
+      "F_CIA": ""
+    }
+  ]
+}

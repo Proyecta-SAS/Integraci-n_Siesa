@@ -1,4 +1,4 @@
-# Mapeo de pagos Alegra a Siesa ReciboCaja
+# Mapeo de pagos a Siesa ReciboCaja
 
 Modulo destino confirmado:
 
@@ -8,12 +8,21 @@ Financiero > Cuentas x cobrar > Recibos de caja > Clientes
 
 ## Entrada confirmada en Google Sheets
 
-Las hojas `ALEGRA - LIDERA`, `ALEGRA - ALIANZA JURIDICA AVANZAR` y `ALEGRA - PROSPERAR` comparten el encabezado base:
+Fuente operativa revisada:
+
+- Archivo: `ALEGRA - ALIANZA JURIDICA AVANZAR`
+- Spreadsheet ID: `1TuXSZESNm1xJGJvXLMKTq2bAY1ZvmCl6n8Aez1FRVp8`
+- Pestana operativa: `Ingreso / Egreso`
+- Rango de encabezado: `A1:V1`
+- Pestana de catalogos/listas: `ID`
+
+Aunque el archivo conserva nombre de Alegra, en esta integracion se usa como bandeja de captura para crear recibos de caja en Siesa.
 
 | Campo Sheets | Campo canonico | Uso |
 | --- | --- | --- |
 | Cuenta bancaria | `bank_account` | Caja/cuenta de recaudo. |
 | Fecha | `payment_date` | Fecha del recibo de caja. |
+| Contacto | `contact` | Tercero/contacto existente cuando no se crea uno nuevo. |
 | Tipo de Transaccion | `transaction_type` | Debe ser `Ingreso` para pagos de clientes. |
 | Metodo de pago | `payment_method` | Medio de pago enviado a Siesa. |
 | Centro de costos | `cost_center` | Centro de costo operativo, si aplica. |
@@ -22,11 +31,29 @@ Las hojas `ALEGRA - LIDERA`, `ALEGRA - ALIANZA JURIDICA AVANZAR` y `ALEGRA - PRO
 | Valor | `amount` | Valor del pago, mayor que cero. |
 | Nota | `note` | Referencia visible del pago. |
 | Observaciones | `observations` | Texto de soporte/trazabilidad. |
+| Cliente | `customer_action` | Define si se crea tercero (`CREAR`) o se usa contacto existente. |
+| Tipo | `person_type` | Rol esperado: cliente, proveedor o cliente/proveedor. |
 | Tipo de identificacion | `identity_type` | Tipo de documento del tercero. |
 | Numero de identificacion | `identity_number` | Identificacion del cliente/tercero. |
 | Nombre / Apellido | `first_name` / `last_name` | Nombre del tercero. |
+| Tipo de persona | `tax_person_type` | Natural o juridica cuando aplica. |
+| Responsabilidad tributaria | `tax_responsibility` | Regimen/responsabilidad tributaria. |
 | Municipio / Departamento | `municipality_department` | Ubicacion del tercero, si aplica. |
 | Direccion | `address` | Direccion del tercero, si aplica. |
+
+## Validaciones detectadas en la hoja
+
+- `Cuenta bancaria`: lista desde `ID!B3:B11`.
+- `Contacto`: lista desde `ID!S3:S1546`.
+- `Tipo de Transaccion`: `Ingreso` o `Egreso`.
+- `Metodo de pago`: `Transferencia`, `Efectivo`, `Consinacion`, `Cheque`, `tarjeta de credito`, `tarjeta de debito`.
+- `Concepto`: lista desde `ID!H3:H1526`.
+- `Cliente`: lista desde `ID!N4`.
+- `Tipo`: lista desde `ID!N5:N7`.
+- `Tipo de identificacion`: `CC - Cedula de ciudadania` o `NIT - Numero de identificacion tributaria`.
+- `Tipo de persona`: lista desde `ID!O3:O4`.
+- `Responsabilidad tributaria`: lista desde `ID!P3:P8`.
+- `Municipio / Departamento`: lista desde `ID!Q3:Q1112`.
 
 ## Parametros Siesa requeridos para QA
 
@@ -35,11 +62,10 @@ La parametrizacion de recibos de caja de Siesa indica que varios valores son obl
 | Variable | Descripcion |
 | --- | --- |
 | `SIESA_TIPO_DOCUMENTO` | Tipo de documento que pasara al ERP, usualmente un recibo de caja. |
-| `SIESA_ESTADO_DOCUMENTO` | Estado permitido para sincronizacion; `1` representa aprobado. |
 | `SIESA_ID_CAJA` | Caja a la cual se asociara el recibo. |
-| `SIESA_MONEDA_RECAUDO` | Moneda del recaudo. |
-| `SIESA_MONEDA_APLICACION` | Moneda de aplicacion contable. |
-| `SIESA_CONCEPTO_FLUJO_EFECTIVO` | Concepto de flujo de efectivo para recaudos o anticipos. |
+| `SIESA_ID_COMPANIA` | Compania Siesa donde se crea el recibo. |
+| `SIESA_ID_DOCUMENTO` | Documento/conector Siesa; por defecto `142888`. |
+| `SIESA_NOMBRE_DOCUMENTO` | Nombre del documento; por defecto `API_v1_ReciboCaja`. |
 
 ## Validaciones implementadas
 
@@ -52,4 +78,17 @@ La parametrizacion de recibos de caja de Siesa indica que varios valores son obl
 
 ## Ajuste del contrato final
 
-`config/siesa_recibo_caja_mapping.json` define el payload enviado a Siesa HUB. Cuando Siesa entregue el contrato exacto del conector `142888 - API_v1_ReciboCaja`, solo debe ajustarse `payload_template`; la lectura y validacion de la hoja no cambian.
+`config/siesa_recibo_caja_mapping.json` define el payload enviado a Siesa HUB. El Body real levantado desde el Documentador usa estas secciones:
+
+```json
+{
+  "Inicial": [{ "F_CIA": "..." }],
+  "Caja": [{ "...": "..." }],
+  "RCyotrosingresos": [{ "...": "..." }],
+  "CxC": [{ "...": "..." }]
+}
+```
+
+Los campos obligatorios del Body dependen de la parametrizacion de Siesa, especialmente centro de operacion, tipo de documento, caja, moneda, cobrador y documento de CxC a cruzar. Esos valores quedan en variables `SIESA_*` para no amarrar el codigo a una compania o ambiente.
+
+La seccion `CxC` exige datos del documento/factura que recibe el pago: tipo de documento cruce, consecutivo, auxiliar, centro de operacion, unidad de negocio, sucursal y cuota. Para QA se pueden cargar por variables de entorno contra una factura conocida; para produccion deben venir por fila desde la hoja o resolverse con una consulta previa a cartera.

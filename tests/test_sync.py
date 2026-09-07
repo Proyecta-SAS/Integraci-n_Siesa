@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tempfile
+import json
 from pathlib import Path
 from unittest import TestCase
 
@@ -29,13 +30,16 @@ def runtime_for(tmp_path: Path, csv_path: Path, dry_run: bool) -> RuntimeConfig:
         mapping_file=Path("config/siesa_recibo_caja_mapping.json"),
         state_file=tmp_path / "state.json",
         log_file=tmp_path / "audit.jsonl",
+        siesa_connector_url=None,
         hub_base_url="https://siesa.example",
         hub_connector_id="142888",
         hub_operation="API_v1_ReciboCaja",
-        hub_token="token",
-        hub_auth_scheme="Bearer",
-        hub_execute_path="/hub/{connector_id}/execute",
-        hub_metadata_path="/hub/{connector_id}",
+        siesa_connikey="key",
+        siesa_connitoken="token",
+        siesa_id_compania="1",
+        siesa_id_documento="142888",
+        siesa_nombre_documento="API_v1_ReciboCaja",
+        hub_execute_path="/hub/execute",
     )
 
 
@@ -49,12 +53,23 @@ class SyncTests(TestCase):
             csv_path = tmp_path / "payments.csv"
             csv_path.write_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), encoding="utf-8")
             transport = FakeTransport()
-            client = SiesaHubClient("https://siesa.example", "token", transport=transport)
+            client = SiesaHubClient(
+                "https://siesa.example",
+                "key",
+                "token",
+                "1",
+                "142888",
+                "API_v1_ReciboCaja",
+                transport=transport,
+            )
 
             result = PaymentSyncService(runtime_for(tmp_path, csv_path, True), self.mapping, client).sync()
 
             self.assertEqual(result.dry_run, 1)
             self.assertEqual(transport.calls, [])
+            event = json.loads((tmp_path / "audit.jsonl").read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(event["flow"], "create_person_contact_receipt")
+            self.assertIn("siesa_target", event)
 
     def test_send_posts_to_connector_and_stores_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -63,9 +78,13 @@ class SyncTests(TestCase):
             csv_path.write_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), encoding="utf-8")
             transport = FakeTransport()
             client = SiesaHubClient(
-                "https://siesa.example",
-                "token",
-                execute_path="/hub/{connector_id}/execute",
+                base_url="https://siesa.example",
+                connikey="key",
+                connitoken="token",
+                id_compania="1",
+                id_documento="142888",
+                nombre_documento="API_v1_ReciboCaja",
+                execute_path="/hub/execute",
                 transport=transport,
             )
 
@@ -73,5 +92,8 @@ class SyncTests(TestCase):
 
             self.assertEqual(result.sent, 1)
             self.assertEqual(transport.calls[0][0], "POST")
-            self.assertIn("/hub/142888/execute", transport.calls[0][1])
+            self.assertIn("/hub/execute", transport.calls[0][1])
+            self.assertIn("idCompania=1", transport.calls[0][1])
+            self.assertEqual(transport.calls[0][2]["Connikey"], "key")
+            self.assertEqual(transport.calls[0][2]["Connitoken"], "token")
             self.assertTrue((tmp_path / "state.json").exists())

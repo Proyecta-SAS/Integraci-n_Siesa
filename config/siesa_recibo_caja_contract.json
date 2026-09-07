@@ -1,0 +1,87 @@
+{
+  "Inicial": [
+    {
+      "F_CIA": ""
+    }
+  ],
+  "Caja": [
+    {
+      "F_CIA": "",
+      "F350_ID_CO": "",
+      "F350_ID_TIPO_DOCTO": "",
+      "F350_CONSEC_DOCTO": "",
+      "F358_ID_MEDIOS_PAGO": "",
+      "F358_VALOR": "",
+      "F358_ID_BANCO": "",
+      "F358_NRO_CHEQUE": "",
+      "F358_NRO_CUENTA": "",
+      "F358_COD_SEGURIDAD": "",
+      "F358_NRO_AUTORIZACION": "",
+      "F358_FECHA_VCTO": "",
+      "F358_REFERENCIA_OTROS": "",
+      "F358_FECHA_CONSIGNACION": "",
+      "F358_ID_CAUSALES_DEVOLUCION": "",
+      "F358_ID_TERCERO": "",
+      "F358_NOTAS": "",
+      "F358_ID_CCOSTO": "",
+      "f358_nro_alt_docto_banco": "",
+      "f358_docto_banco_cg": ""
+    }
+  ],
+  "RCyotrosingresos": [
+    {
+      "F_CIA": "",
+      "F_CONSEC_AUTO_REG": "",
+      "F350_ID_CO": "",
+      "F350_ID_TIPO_DOCTO": "",
+      "F350_CONSEC_DOCTO": "",
+      "F350_FECHA": "",
+      "F357_ID_CAJA": "",
+      "F357_FECHA_RECAUDO": "",
+      "F350_ID_TERCERO": "",
+      "F357_ID_MONEDA_INGRESO": "",
+      "F357_VALOR_INGRESO": "",
+      "F357_ID_MONEDA_APLICAR": "",
+      "F357_VALOR_APLICAR_REAL": "",
+      "F357_ID_COBRADOR": "",
+      "F357_ID_UN": "",
+      "F357_ID_CCOSTO": "",
+      "F357_ID_FE": "",
+      "F350_ID_CLASE_DOCTO": "",
+      "F350_IND_ESTADO": "",
+      "F350_IND_IMPRESION": "",
+      "F350_NOTAS": "",
+      "F351_ID_AUXILIAR_AJUSTE": "",
+      "F351_ID_CCOSTO_AJUSTE": "",
+      "F351_ID_AUXILIAR_PP": "",
+      "F351_ID_CCOSTO_PP": "",
+      "F351_ID_AUXILIAR_OTRO_ING": "",
+      "F351_ID_TERCERO_OTRO_ING": "",
+      "F351_ID_SUCURSAL_OTRO_ING": "",
+      "F351_ID_CO_OTRO_ING": "",
+      "F351_ID_UN_OTRO_ING": "",
+      "F351_ID_CCOSTO_OTRO_ING": "",
+      "F357_REFERENCIA": "",
+      "F357_IND_VALIDA_MEDPAGO": ""
+    }
+  ],
+  "CxC": [
+    {
+      "F353_ID_TIPO_DOCTO_CRUCE": "",
+      "F353_CONSEC_DOCTO_CRUCE": "",
+      "F_CIA": "",
+      "F350_ID_CO": "",
+      "F350_ID_TIPO_DOCTO": "",
+      "F350_CONSEC_DOCTO": "",
+      "F353_ID_AUXILIAR_DOCTO_CRUCE": "",
+      "F353_ID_CO_DOCTO_CRUCE": "",
+      "F353_ID_UN_DOCTO_CRUCE": "",
+      "F353_ID_SUCURSAL_DOCTO_CRUCE": "",
+      "F353_NRO_CUOTA_CRUCE": "",
+      "F354_VALOR_CR": "",
+      "F354_VALOR_APLICADO_PP": "",
+      "F354_VALOR_APROVECHA": "",
+      "F354_VALOR_RETENCION": ""
+    }
+  ]
+}

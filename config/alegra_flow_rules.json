@@ -1,0 +1,219 @@
+{
+  "source_blueprint": "references/make/alianza_juridica_avanzar.blueprint.json",
+  "scenario_name": "Alianza Jurídica Avanzar",
+  "reference_google_sheet": {
+    "spreadsheet_id": "1TuXSZESNm1xJGJvXLMKTq2bAY1ZvmCl6n8Aez1FRVp8",
+    "sheet_name": "Ingreso / Egreso",
+    "header_range": "A1:CZ1",
+    "sort": "__ROW_NUMBER__ desc"
+  },
+  "entry_condition": {
+    "source": "webhook",
+    "field": "activador",
+    "operator": "equals",
+    "value": "ON"
+  },
+  "routes": [
+    {
+      "key": "existing_contact_receipt",
+      "make_nodes": [
+        10,
+        3,
+        15
+      ],
+      "condition": "upper(sheet.customer_action) does not contain CREAR",
+      "required_after_mapping": [
+        "contact_id != 0"
+      ],
+      "siesa_target": "Financiero > Cuentas x cobrar > Recibos de caja > Clientes"
+    },
+    {
+      "key": "create_person_contact_receipt",
+      "make_nodes": [
+        20,
+        21,
+        25,
+        24
+      ],
+      "condition": "upper(sheet.customer_action) contains CREAR and identity_type is CC/persona natural",
+      "siesa_target": "Crear/validar tercero persona natural y luego ReciboCaja"
+    },
+    {
+      "key": "create_legal_contact_receipt",
+      "make_nodes": [
+        20,
+        23,
+        26,
+        27
+      ],
+      "condition": "upper(sheet.customer_action) contains CREAR and identity_type is NIT/persona juridica",
+      "siesa_target": "Crear/validar tercero juridico y luego ReciboCaja"
+    },
+    {
+      "key": "create_client_provider_receipt",
+      "make_nodes": [
+        20,
+        36,
+        35,
+        37,
+        42,
+        38,
+        44,
+        40
+      ],
+      "condition": "upper(sheet.customer_action) contains CREAR and role is Cliente / Proveedor",
+      "siesa_target": "Crear/validar tercero con doble rol y luego ReciboCaja"
+    }
+  ],
+  "sheet_index_map": {
+    "0": "bank_account",
+    "1": "payment_date",
+    "2": "contact",
+    "3": "transaction_type",
+    "4": "payment_method",
+    "5": "cost_center",
+    "6": "concept",
+    "7": "quantity",
+    "8": "amount",
+    "9": "note",
+    "10": "observations",
+    "12": "customer_action",
+    "13": "person_type",
+    "14": "identity_type",
+    "15": "identity_number",
+    "16": "first_name",
+    "17": "last_name",
+    "18": "tax_person_type",
+    "19": "tax_responsibility",
+    "20": "municipality_department",
+    "21": "address"
+  },
+  "small_mappings": {
+    "bank_accounts": [
+      {
+        "label": "BANCOLOMBIA",
+        "value": 3
+      },
+      {
+        "label": "TD PLATAFORMAS ALIANZA 4745540062525610",
+        "value": 15
+      },
+      {
+        "label": "TD COMERCIAL ALIANZA 4745540073982255",
+        "value": 16
+      },
+      {
+        "label": "TD MARKETING ALIANZA 4745540058787117",
+        "value": 17
+      },
+      {
+        "label": "TD COMPRAS ALIANZA 4745540047055808",
+        "value": 18
+      },
+      {
+        "label": "TD VIATICOS DIR COMERCIAL 4745540237591018",
+        "value": 19
+      },
+      {
+        "label": "TD VIATICOS SUB DIRECCION 4745540212931056",
+        "value": 20
+      },
+      {
+        "label": "TD VIATICOS DIR GENERAL 4745540247149393",
+        "value": 21
+      },
+      {
+        "label": "Bold CF - Depósito electrónico 170012476566",
+        "value": 29
+      }
+    ],
+    "payment_methods": [
+      {
+        "label": "Efectivo",
+        "value": "cash"
+      },
+      {
+        "label": "Consinación",
+        "value": "check"
+      },
+      {
+        "label": "Transferencia",
+        "value": "transfer"
+      },
+      {
+        "label": "Cheque",
+        "value": "deposit"
+      },
+      {
+        "label": "tarjeta de crédito",
+        "value": "credit-card"
+      },
+      {
+        "label": "tarjeta de débito",
+        "value": "debit-card"
+      }
+    ],
+    "transaction_types": [
+      {
+        "label": "Ingreso",
+        "value": "in"
+      },
+      {
+        "label": "Egreso",
+        "value": "out"
+      }
+    ],
+    "person_roles": [
+      {
+        "label": "Cliente",
+        "value": "client"
+      },
+      {
+        "label": "Proveedor",
+        "value": "provider"
+      },
+      {
+        "label": "Cliente / Proveedor",
+        "value": "client,provider"
+      }
+    ],
+    "tax_responsibilities": [
+      {
+        "label": "Responsable de IVA",
+        "value": "COMMON_REGIME"
+      },
+      {
+        "label": "No responsable de IVA",
+        "value": "SIMPLIFIED_REGIME"
+      },
+      {
+        "label": "Impuesto Nacional al Consumo - INC",
+        "value": "NATIONAL_CONSUMPTION_TAX"
+      },
+      {
+        "label": "No responsable de INC",
+        "value": "NOT_REPONSIBLE_FOR_CONSUMPTION"
+      },
+      {
+        "label": "Responsable de IVA e INC",
+        "value": "INC_IVA_RESPONSIBLE"
+      },
+      {
+        "label": "Régimen especial",
+        "value": "SPECIAL_REGIME"
+      }
+    ]
+  },
+  "large_catalogs": {
+    "contact_ids": {
+      "count": 1713,
+      "file": "config/alegra_catalogs_from_make.json",
+      "json_path": "contact_ids"
+    },
+    "concept_ids": {
+      "count": 1522,
+      "file": "config/alegra_catalogs_from_make.json",
+      "json_path": "concept_ids"
+    }
+  }
+}
