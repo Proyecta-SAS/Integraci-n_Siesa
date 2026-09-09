@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 from .config import MappingConfig
-from .models import PAYMENT_FIELD_NAMES, PaymentRow
+from .models import PAYMENT_FIELD_NAMES, PaymentRow, format_decimal_signed, format_integer, normalize_header, parse_decimal
 
 
 class MappingError(RuntimeError):
@@ -50,6 +50,24 @@ def _set_dotted(target: dict[str, Any], dotted_path: str, value: Any) -> None:
         current = node
 
 
+def _apply_value_map(value: Any, rule: dict[str, Any], mapping: MappingConfig) -> Any:
+    map_name = rule.get("map")
+    if not map_name:
+        return value
+    value_map = mapping.value_maps.get(str(map_name), {})
+    return value_map.get(normalize_header(str(value)), value)
+
+
+def _apply_format(value: Any, rule: dict[str, Any]) -> Any:
+    value_format = rule.get("format")
+    if value_format == "decimal_signed_21":
+        return format_decimal_signed(parse_decimal(value))
+    if isinstance(value_format, str) and value_format.startswith("integer_"):
+        return format_integer(value, int(value_format.removeprefix("integer_")))
+    if isinstance(value_format, str) and value_format.startswith("max_"):
+        return str(value)[: int(value_format.removeprefix("max_"))]
+    return value
+
 def build_payload(payment: PaymentRow, mapping: MappingConfig) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     for target_path, rule in mapping.payload_template.items():
@@ -74,5 +92,6 @@ def build_payload(payment: PaymentRow, mapping: MappingConfig) -> dict[str, Any]
             value = payment.to_payload_value(field_name, rule.get("format"))
         else:
             raise MappingError(f"source de mapping no soportado: {source!r}")
-        _set_dotted(payload, target_path, value)
+        value = _apply_format(value, rule)
+        _set_dotted(payload, target_path, _apply_value_map(value, rule, mapping))
     return payload

@@ -1,0 +1,2 @@
+Cuenta bancaria,Fecha,Contacto,Tipo de Transaccion,Metodo de pago,Centro de costos,Concepto,Cantidad,Valor,Nota ,Observaciones,,Cliente,Tipo ,Tipo de identificación, Número de identificación *,Nombre *,Apellido *,Tipo de persona (solo para NIT) *,Responsabilidad tributaria (solo para NIT) *,Municipio / Departamento,Dirección ( * si pones municipio)
+CAJA GENERAL,30/06/2026,VARGAS LUQUE JEYDY VANESSA,Ingreso,Transferencia,,130505 CLIENTES,1,1000,QA FVE-00000001,Prueba recibo caja Siesa,,CREAR,Persona natural,CC - Cédula de ciudadanía,1000456076,JEYDY VANESSA,VARGAS LUQUE,,,

@@ -5,7 +5,7 @@ import re
 import unicodedata
 from dataclasses import dataclass, fields
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
 
@@ -45,6 +45,19 @@ def parse_decimal(value: Any) -> Decimal:
     except InvalidOperation as exc:
         raise ValueError(f"valor decimal invalido: {value!r}") from exc
 
+
+def format_decimal_signed(value: Decimal, integer_digits: int = 15, decimals: int = 4) -> str:
+    quant = Decimal(1).scaleb(-decimals)
+    rounded = value.quantize(quant, rounding=ROUND_HALF_UP)
+    sign = "-" if rounded < 0 else "+"
+    absolute = abs(rounded)
+    integer_text, _, decimal_text = format(absolute, f".{decimals}f").partition(".")
+    return f"{sign}{integer_text.zfill(integer_digits)}.{decimal_text.ljust(decimals, '0')}"
+
+
+def format_integer(value: Any, width: int) -> str:
+    decimal_value = parse_decimal(value)
+    return str(int(decimal_value)).zfill(width)
 
 def parse_date(value: Any) -> date:
     text = clean_text(value)
@@ -117,6 +130,10 @@ class PaymentRow:
                 return value.strftime("%Y%m%d")
             return value.isoformat()
         if isinstance(value, Decimal):
+            if value_format == "decimal_signed_21":
+                return format_decimal_signed(value)
+            if value_format and value_format.startswith("integer_"):
+                return format_integer(value, int(value_format.removeprefix("integer_")))
             if value_format == "string":
                 return format(value, "f")
             return float(value)

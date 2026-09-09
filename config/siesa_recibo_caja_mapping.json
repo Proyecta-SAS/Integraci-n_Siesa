@@ -3,100 +3,412 @@
   "operation": "API_v1_ReciboCaja",
   "required_transaction_type": "Ingreso",
   "sheet_columns": {
-    "bank_account": ["Cuenta bancaria", "Cuenta bancaria "],
-    "payment_date": ["Fecha"],
-    "contact": ["Contacto"],
-    "transaction_type": ["Tipo de Transaccion", "Tipo de Transacción"],
-    "payment_method": ["Metodo de pago", "Método de pago"],
-    "cost_center": ["Centro de costos"],
-    "concept": ["Concepto"],
-    "quantity": ["Cantidad"],
-    "amount": ["Valor"],
-    "note": ["Nota", "Nota "],
-    "observations": ["Observaciones"],
-    "customer_action": ["Cliente"],
-    "person_type": ["Tipo", "Tipo "],
-    "identity_type": ["Tipo de identificación", "Tipo de identificacion"],
-    "identity_number": [" Número de identificación *", "Numero de identificacion", "Número de identificación *"],
-    "first_name": ["Nombre *", "Nombre"],
-    "last_name": ["Apellido *", "Apellido"],
-    "tax_person_type": ["Tipo de persona (solo para NIT) *", "Tipo de persona"],
-    "tax_responsibility": ["Responsabilidad tributaria (solo para NIT) *", "Responsabilidad tributaria"],
-    "municipality_department": ["Municipio / Departamento"],
-    "address": ["Dirección ( * si pones municipio)", "Direccion"]
+    "bank_account": [
+      "Cuenta bancaria",
+      "Cuenta bancaria "
+    ],
+    "payment_date": [
+      "Fecha"
+    ],
+    "contact": [
+      "Contacto"
+    ],
+    "transaction_type": [
+      "Tipo de Transaccion",
+      "Tipo de Transacción"
+    ],
+    "payment_method": [
+      "Metodo de pago",
+      "Método de pago"
+    ],
+    "cost_center": [
+      "Centro de costos"
+    ],
+    "concept": [
+      "Concepto"
+    ],
+    "quantity": [
+      "Cantidad"
+    ],
+    "amount": [
+      "Valor"
+    ],
+    "note": [
+      "Nota",
+      "Nota "
+    ],
+    "observations": [
+      "Observaciones"
+    ],
+    "customer_action": [
+      "Cliente"
+    ],
+    "person_type": [
+      "Tipo",
+      "Tipo "
+    ],
+    "identity_type": [
+      "Tipo de identificación",
+      "Tipo de identificacion"
+    ],
+    "identity_number": [
+      " Número de identificación *",
+      "Numero de identificacion",
+      "Número de identificación *"
+    ],
+    "first_name": [
+      "Nombre *",
+      "Nombre"
+    ],
+    "last_name": [
+      "Apellido *",
+      "Apellido"
+    ],
+    "tax_person_type": [
+      "Tipo de persona (solo para NIT) *",
+      "Tipo de persona"
+    ],
+    "tax_responsibility": [
+      "Responsabilidad tributaria (solo para NIT) *",
+      "Responsabilidad tributaria"
+    ],
+    "municipality_department": [
+      "Municipio / Departamento"
+    ],
+    "address": [
+      "Dirección ( * si pones municipio)",
+      "Direccion"
+    ]
   },
   "payload_template": {
-    "Inicial.0.F_CIA": {"source": "env", "name": "SIESA_ID_COMPANIA", "default": ""},
-
-    "Caja.0.F_CIA": {"source": "env", "name": "SIESA_ID_COMPANIA", "default": ""},
-    "Caja.0.F350_ID_CO": {"source": "env", "name": "SIESA_ID_CO", "default": ""},
-    "Caja.0.F350_ID_TIPO_DOCTO": {"source": "env", "name": "SIESA_TIPO_DOCUMENTO", "default": "RCW"},
-    "Caja.0.F350_CONSEC_DOCTO": {"source": "env", "name": "SIESA_CONSEC_DOCTO", "default": "0"},
-    "Caja.0.F358_ID_MEDIOS_PAGO": {"source": "payment", "field": "payment_method"},
-    "Caja.0.F358_VALOR": {"source": "payment", "field": "amount", "format": "string"},
-    "Caja.0.F358_ID_BANCO": {"source": "literal", "value": ""},
-    "Caja.0.F358_NRO_CHEQUE": {"source": "literal", "value": ""},
-    "Caja.0.F358_NRO_CUENTA": {"source": "literal", "value": ""},
-    "Caja.0.F358_COD_SEGURIDAD": {"source": "literal", "value": ""},
-    "Caja.0.F358_NRO_AUTORIZACION": {"source": "literal", "value": ""},
-    "Caja.0.F358_FECHA_VCTO": {"source": "literal", "value": ""},
-    "Caja.0.F358_REFERENCIA_OTROS": {"source": "idempotency_key"},
-    "Caja.0.F358_FECHA_CONSIGNACION": {"source": "payment", "field": "payment_date", "format": "yyyymmdd"},
-    "Caja.0.F358_ID_CAUSALES_DEVOLUCION": {"source": "literal", "value": ""},
-    "Caja.0.F358_ID_TERCERO": {"source": "payment", "field": "identity_number"},
-    "Caja.0.F358_NOTAS": {"source": "payment", "field": "note"},
-    "Caja.0.F358_ID_CCOSTO": {"source": "payment", "field": "cost_center"},
-    "Caja.0.f358_nro_alt_docto_banco": {"source": "literal", "value": ""},
-    "Caja.0.f358_docto_banco_cg": {"source": "literal", "value": ""},
-
-    "RCyotrosingresos.0.F_CIA": {"source": "env", "name": "SIESA_ID_COMPANIA", "default": ""},
-    "RCyotrosingresos.0.F_CONSEC_AUTO_REG": {"source": "env", "name": "SIESA_CONSEC_AUTO_REG", "default": "1"},
-    "RCyotrosingresos.0.F350_ID_CO": {"source": "env", "name": "SIESA_ID_CO", "default": ""},
-    "RCyotrosingresos.0.F350_ID_TIPO_DOCTO": {"source": "env", "name": "SIESA_TIPO_DOCUMENTO", "default": "RCW"},
-    "RCyotrosingresos.0.F350_CONSEC_DOCTO": {"source": "env", "name": "SIESA_CONSEC_DOCTO", "default": "0"},
-    "RCyotrosingresos.0.F350_FECHA": {"source": "payment", "field": "payment_date", "format": "yyyymmdd"},
-    "RCyotrosingresos.0.F357_ID_CAJA": {"source": "env", "name": "SIESA_ID_CAJA", "default": ""},
-    "RCyotrosingresos.0.F357_FECHA_RECAUDO": {"source": "payment", "field": "payment_date", "format": "yyyymmdd"},
-    "RCyotrosingresos.0.F350_ID_TERCERO": {"source": "payment", "field": "identity_number"},
-    "RCyotrosingresos.0.F357_ID_MONEDA_INGRESO": {"source": "env", "name": "SIESA_ID_MONEDA", "default": "COP"},
-    "RCyotrosingresos.0.F357_VALOR_INGRESO": {"source": "payment", "field": "amount", "format": "string"},
-    "RCyotrosingresos.0.F357_ID_MONEDA_APLICAR": {"source": "env", "name": "SIESA_ID_MONEDA_APLICAR", "default": "COP"},
-    "RCyotrosingresos.0.F357_VALOR_APLICAR_REAL": {"source": "payment", "field": "amount", "format": "string"},
-    "RCyotrosingresos.0.F357_ID_COBRADOR": {"source": "env", "name": "SIESA_ID_COBRADOR", "default": ""},
-    "RCyotrosingresos.0.F357_ID_UN": {"source": "env", "name": "SIESA_ID_UN", "default": ""},
-    "RCyotrosingresos.0.F357_ID_CCOSTO": {"source": "payment", "field": "cost_center"},
-    "RCyotrosingresos.0.F357_ID_FE": {"source": "env", "name": "SIESA_ID_FE", "default": ""},
-    "RCyotrosingresos.0.F350_ID_CLASE_DOCTO": {"source": "literal", "value": "13"},
-    "RCyotrosingresos.0.F350_IND_ESTADO": {"source": "literal", "value": "1"},
-    "RCyotrosingresos.0.F350_IND_IMPRESION": {"source": "literal", "value": "0"},
-    "RCyotrosingresos.0.F350_NOTAS": {"source": "payment", "field": "note"},
-    "RCyotrosingresos.0.F351_ID_AUXILIAR_AJUSTE": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_CCOSTO_AJUSTE": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_AUXILIAR_PP": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_CCOSTO_PP": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_AUXILIAR_OTRO_ING": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_TERCERO_OTRO_ING": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_SUCURSAL_OTRO_ING": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_CO_OTRO_ING": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_UN_OTRO_ING": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F351_ID_CCOSTO_OTRO_ING": {"source": "literal", "value": ""},
-    "RCyotrosingresos.0.F357_REFERENCIA": {"source": "idempotency_key"},
-    "RCyotrosingresos.0.F357_IND_VALIDA_MEDPAGO": {"source": "env", "name": "SIESA_VALIDA_MEDIO_PAGO", "default": "0"},
-
-    "CxC.0.F353_ID_TIPO_DOCTO_CRUCE": {"source": "env", "name": "SIESA_TIPO_DOCTO_CRUCE", "default": ""},
-    "CxC.0.F353_CONSEC_DOCTO_CRUCE": {"source": "env", "name": "SIESA_CONSEC_DOCTO_CRUCE", "default": ""},
-    "CxC.0.F_CIA": {"source": "env", "name": "SIESA_ID_COMPANIA", "default": ""},
-    "CxC.0.F350_ID_CO": {"source": "env", "name": "SIESA_ID_CO", "default": ""},
-    "CxC.0.F350_ID_TIPO_DOCTO": {"source": "env", "name": "SIESA_TIPO_DOCUMENTO", "default": "RCW"},
-    "CxC.0.F350_CONSEC_DOCTO": {"source": "env", "name": "SIESA_CONSEC_DOCTO", "default": "0"},
-    "CxC.0.F353_ID_AUXILIAR_DOCTO_CRUCE": {"source": "env", "name": "SIESA_AUXILIAR_DOCTO_CRUCE", "default": ""},
-    "CxC.0.F353_ID_CO_DOCTO_CRUCE": {"source": "env", "name": "SIESA_ID_CO_CRUCE", "default": ""},
-    "CxC.0.F353_ID_UN_DOCTO_CRUCE": {"source": "env", "name": "SIESA_ID_UN_CRUCE", "default": ""},
-    "CxC.0.F353_ID_SUCURSAL_DOCTO_CRUCE": {"source": "env", "name": "SIESA_SUCURSAL_DOCTO_CRUCE", "default": ""},
-    "CxC.0.F353_NRO_CUOTA_CRUCE": {"source": "env", "name": "SIESA_NRO_CUOTA_CRUCE", "default": "0"},
-    "CxC.0.F354_VALOR_CR": {"source": "payment", "field": "amount", "format": "string"},
-    "CxC.0.F354_VALOR_APLICADO_PP": {"source": "literal", "value": ""},
-    "CxC.0.F354_VALOR_APROVECHA": {"source": "literal", "value": ""},
-    "CxC.0.F354_VALOR_RETENCION": {"source": "literal", "value": ""}
+    "Inicial.0.F_CIA": {
+      "source": "env",
+      "name": "SIESA_F_CIA",
+      "default": ""
+    },
+    "Caja.0.F_CIA": {
+      "source": "env",
+      "name": "SIESA_F_CIA",
+      "default": ""
+    },
+    "Caja.0.F350_ID_CO": {
+      "source": "env",
+      "name": "SIESA_ID_CO",
+      "default": ""
+    },
+    "Caja.0.F350_ID_TIPO_DOCTO": {
+      "source": "env",
+      "name": "SIESA_TIPO_DOCUMENTO",
+      "default": "RCW"
+    },
+    "Caja.0.F350_CONSEC_DOCTO": {
+      "source": "env",
+      "name": "SIESA_CONSEC_DOCTO",
+      "default": "0",
+      "format": "integer_8"
+    },
+    "Caja.0.F358_ID_MEDIOS_PAGO": {
+      "source": "payment",
+      "field": "payment_method",
+      "map": "siesa_payment_methods"
+    },
+    "Caja.0.F358_VALOR": {
+      "source": "payment",
+      "field": "amount",
+      "format": "decimal_signed_21"
+    },
+    "Caja.0.F358_ID_BANCO": {
+      "source": "literal",
+      "value": ""
+    },
+    "Caja.0.F358_NRO_CHEQUE": {
+      "source": "literal",
+      "value": ""
+    },
+    "Caja.0.F358_NRO_CUENTA": {
+      "source": "literal",
+      "value": ""
+    },
+    "Caja.0.F358_COD_SEGURIDAD": {
+      "source": "literal",
+      "value": ""
+    },
+    "Caja.0.F358_NRO_AUTORIZACION": {
+      "source": "literal",
+      "value": ""
+    },
+    "Caja.0.F358_FECHA_VCTO": {
+      "source": "literal",
+      "value": ""
+    },
+    "Caja.0.F358_REFERENCIA_OTROS": {
+      "source": "idempotency_key",
+      "format": "max_30"
+    },
+    "Caja.0.F358_FECHA_CONSIGNACION": {
+      "source": "payment",
+      "field": "payment_date",
+      "format": "yyyymmdd"
+    },
+    "Caja.0.F358_ID_CAUSALES_DEVOLUCION": {
+      "source": "literal",
+      "value": ""
+    },
+    "Caja.0.F358_ID_TERCERO": {
+      "source": "payment",
+      "field": "identity_number"
+    },
+    "Caja.0.F358_NOTAS": {
+      "source": "payment",
+      "field": "note"
+    },
+    "Caja.0.F358_ID_CCOSTO": {
+      "source": "payment",
+      "field": "cost_center"
+    },
+    "Caja.0.f358_nro_alt_docto_banco": {
+      "source": "literal",
+      "value": ""
+    },
+    "Caja.0.f358_docto_banco_cg": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F_CIA": {
+      "source": "env",
+      "name": "SIESA_F_CIA",
+      "default": ""
+    },
+    "RCyotrosingresos.0.F_CONSEC_AUTO_REG": {
+      "source": "env",
+      "name": "SIESA_CONSEC_AUTO_REG",
+      "default": "1"
+    },
+    "RCyotrosingresos.0.F350_ID_CO": {
+      "source": "env",
+      "name": "SIESA_ID_CO",
+      "default": ""
+    },
+    "RCyotrosingresos.0.F350_ID_TIPO_DOCTO": {
+      "source": "env",
+      "name": "SIESA_TIPO_DOCUMENTO",
+      "default": "RCW"
+    },
+    "RCyotrosingresos.0.F350_CONSEC_DOCTO": {
+      "source": "env",
+      "name": "SIESA_CONSEC_DOCTO",
+      "default": "0",
+      "format": "integer_8"
+    },
+    "RCyotrosingresos.0.F350_FECHA": {
+      "source": "payment",
+      "field": "payment_date",
+      "format": "yyyymmdd"
+    },
+    "RCyotrosingresos.0.F357_ID_CAJA": {
+      "source": "env",
+      "name": "SIESA_ID_CAJA",
+      "default": ""
+    },
+    "RCyotrosingresos.0.F357_FECHA_RECAUDO": {
+      "source": "payment",
+      "field": "payment_date",
+      "format": "yyyymmdd"
+    },
+    "RCyotrosingresos.0.F350_ID_TERCERO": {
+      "source": "payment",
+      "field": "identity_number"
+    },
+    "RCyotrosingresos.0.F357_ID_MONEDA_INGRESO": {
+      "source": "env",
+      "name": "SIESA_ID_MONEDA",
+      "default": "COP"
+    },
+    "RCyotrosingresos.0.F357_VALOR_INGRESO": {
+      "source": "payment",
+      "field": "amount",
+      "format": "decimal_signed_21"
+    },
+    "RCyotrosingresos.0.F357_ID_MONEDA_APLICAR": {
+      "source": "env",
+      "name": "SIESA_ID_MONEDA_APLICAR",
+      "default": "COP"
+    },
+    "RCyotrosingresos.0.F357_VALOR_APLICAR_REAL": {
+      "source": "payment",
+      "field": "amount",
+      "format": "decimal_signed_21"
+    },
+    "RCyotrosingresos.0.F357_ID_COBRADOR": {
+      "source": "env",
+      "name": "SIESA_ID_COBRADOR",
+      "default": ""
+    },
+    "RCyotrosingresos.0.F357_ID_UN": {
+      "source": "env",
+      "name": "SIESA_ID_UN",
+      "default": ""
+    },
+    "RCyotrosingresos.0.F357_ID_CCOSTO": {
+      "source": "payment",
+      "field": "cost_center"
+    },
+    "RCyotrosingresos.0.F357_ID_FE": {
+      "source": "env",
+      "name": "SIESA_ID_FE",
+      "default": ""
+    },
+    "RCyotrosingresos.0.F350_ID_CLASE_DOCTO": {
+      "source": "literal",
+      "value": "13",
+      "format": "integer_5"
+    },
+    "RCyotrosingresos.0.F350_IND_ESTADO": {
+      "source": "literal",
+      "value": "1"
+    },
+    "RCyotrosingresos.0.F350_IND_IMPRESION": {
+      "source": "literal",
+      "value": "0"
+    },
+    "RCyotrosingresos.0.F350_NOTAS": {
+      "source": "payment",
+      "field": "note"
+    },
+    "RCyotrosingresos.0.F351_ID_AUXILIAR_AJUSTE": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_CCOSTO_AJUSTE": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_AUXILIAR_PP": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_CCOSTO_PP": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_AUXILIAR_OTRO_ING": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_TERCERO_OTRO_ING": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_SUCURSAL_OTRO_ING": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_CO_OTRO_ING": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_UN_OTRO_ING": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F351_ID_CCOSTO_OTRO_ING": {
+      "source": "literal",
+      "value": ""
+    },
+    "RCyotrosingresos.0.F357_REFERENCIA": {
+      "source": "idempotency_key",
+      "format": "max_20"
+    },
+    "RCyotrosingresos.0.F357_IND_VALIDA_MEDPAGO": {
+      "source": "env",
+      "name": "SIESA_VALIDA_MEDIO_PAGO",
+      "default": "0"
+    },
+    "CxC.0.F353_ID_TIPO_DOCTO_CRUCE": {
+      "source": "env",
+      "name": "SIESA_TIPO_DOCTO_CRUCE",
+      "default": ""
+    },
+    "CxC.0.F353_CONSEC_DOCTO_CRUCE": {
+      "source": "env",
+      "name": "SIESA_CONSEC_DOCTO_CRUCE",
+      "default": ""
+    },
+    "CxC.0.F_CIA": {
+      "source": "env",
+      "name": "SIESA_F_CIA",
+      "default": ""
+    },
+    "CxC.0.F350_ID_CO": {
+      "source": "env",
+      "name": "SIESA_ID_CO",
+      "default": ""
+    },
+    "CxC.0.F350_ID_TIPO_DOCTO": {
+      "source": "env",
+      "name": "SIESA_TIPO_DOCUMENTO",
+      "default": "RCW"
+    },
+    "CxC.0.F350_CONSEC_DOCTO": {
+      "source": "env",
+      "name": "SIESA_CONSEC_DOCTO",
+      "default": "0",
+      "format": "integer_8"
+    },
+    "CxC.0.F353_ID_AUXILIAR_DOCTO_CRUCE": {
+      "source": "env",
+      "name": "SIESA_AUXILIAR_DOCTO_CRUCE",
+      "default": ""
+    },
+    "CxC.0.F353_ID_CO_DOCTO_CRUCE": {
+      "source": "env",
+      "name": "SIESA_ID_CO_CRUCE",
+      "default": ""
+    },
+    "CxC.0.F353_ID_UN_DOCTO_CRUCE": {
+      "source": "env",
+      "name": "SIESA_ID_UN_CRUCE",
+      "default": ""
+    },
+    "CxC.0.F353_ID_SUCURSAL_DOCTO_CRUCE": {
+      "source": "env",
+      "name": "SIESA_SUCURSAL_DOCTO_CRUCE",
+      "default": ""
+    },
+    "CxC.0.F353_NRO_CUOTA_CRUCE": {
+      "source": "env",
+      "name": "SIESA_NRO_CUOTA_CRUCE",
+      "default": "0",
+      "format": "integer_3"
+    },
+    "CxC.0.F354_VALOR_CR": {
+      "source": "payment",
+      "field": "amount",
+      "format": "decimal_signed_21"
+    },
+    "CxC.0.F354_VALOR_APLICADO_PP": {
+      "source": "literal",
+      "value": ""
+    },
+    "CxC.0.F354_VALOR_APROVECHA": {
+      "source": "literal",
+      "value": ""
+    },
+    "CxC.0.F354_VALOR_RETENCION": {
+      "source": "literal",
+      "value": ""
+    },
+    "Final.0.F_CIA": {
+      "source": "env",
+      "name": "SIESA_F_CIA",
+      "default": ""
+    }
+  },
+  "value_maps": {
+    "siesa_payment_methods": {
+      "consignacion": "EFE",
+      "consignación": "EFE",
+      "transferencia": "EFE"
+    }
   }
 }

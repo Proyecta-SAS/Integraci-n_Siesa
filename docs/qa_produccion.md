@@ -22,3 +22,19 @@
 3. Ejecutar inicialmente con una ventana controlada de pagos.
 4. Conservar `logs/siesa_payments.jsonl` como auditoria tecnica y cruzarlo con el reporte de Siesa HUB.
 5. Programar la tarea solo despues de validar que la deduplicacion evita reenvios del mismo pago.
+## Evidencia QA - 2026-09-09
+
+Prueba enviada contra `implementacion02app6.siesacloud.com` usando Apigee QA y el conector `142888 - API_v1_ReciboCaja`.
+
+- Archivo: `samples/siesa_qa_vargas.csv`.
+- Cliente: `1000456076 - VARGAS LUQUE JEYDY VANESSA`.
+- Documento aplicado: `FVE-00000001`.
+- Fecha del recibo: `2026-06-30`.
+- Valor enviado: `$1,000`.
+- Respuesta API: `codigo=0`, `mensaje=Transaccion Exitosa`, `detalle=Importacion exitosa`.
+- Verificacion ERP: `Consulta de movimiento de caja`, documento `RC-00000006`, medio `EFE-EFECTIVO`, caja `01`, debito `$1,000.00`.
+
+Pendiente antes de produccion:
+
+- Confirmar con Siesa si transferencia/consignacion debe quedar como `CG1` y cuales son `F358_ID_BANCO`, `F358_NRO_CUENTA` y `f358_docto_banco_cg` validos.
+- Validar el ruteo completo de las 4 fuentes Alegra/Make antes de automatizar lotes reales.

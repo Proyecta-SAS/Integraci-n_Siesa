@@ -11,7 +11,7 @@ def _env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
     if value is None:
         return default
-    return value.strip().lower() in {"1", "true", "yes", "y", "si", "sí"}
+    return value.strip().lower() in {"1", "true", "yes", "y", "si", "s"}
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,10 @@ class RuntimeConfig:
     hub_operation: str
     siesa_connikey: str | None
     siesa_connitoken: str | None
+    siesa_client_id: str | None
+    siesa_client_secret: str | None
     siesa_id_compania: str | None
+    siesa_id_ecosistema: str | None
     siesa_id_documento: str
     siesa_nombre_documento: str
     hub_execute_path: str
@@ -50,10 +53,13 @@ class RuntimeConfig:
             hub_operation=os.getenv("SIESA_HUB_OPERATION", "API_v1_ReciboCaja"),
             siesa_connikey=os.getenv("SIESA_CONN_KEY") or os.getenv("SIESA_CONNIKEY") or None,
             siesa_connitoken=os.getenv("SIESA_CONN_TOKEN") or os.getenv("SIESA_CONNITOKEN") or None,
+            siesa_client_id=os.getenv("SIESA_CLIENT_ID") or os.getenv("SIESA_APIGEE_CLIENT_ID") or None,
+            siesa_client_secret=os.getenv("SIESA_CLIENT_SECRET") or os.getenv("SIESA_APIGEE_CLIENT_SECRET") or None,
             siesa_id_compania=os.getenv("SIESA_ID_COMPANIA") or None,
+            siesa_id_ecosistema=os.getenv("SIESA_ID_ECOSISTEMA") or None,
             siesa_id_documento=os.getenv("SIESA_ID_DOCUMENTO", "142888"),
             siesa_nombre_documento=os.getenv("SIESA_NOMBRE_DOCUMENTO", "API_v1_ReciboCaja"),
-            hub_execute_path=os.getenv("SIESA_HUB_EXECUTE_PATH", "/api/v1/conectores"),
+            hub_execute_path=os.getenv("SIESA_HUB_EXECUTE_PATH", "/apisestandar/v3/conectoresimportar"),
         )
 
 
@@ -63,6 +69,7 @@ class MappingConfig:
     operation: str
     required_transaction_type: str | None
     sheet_columns: dict[str, list[str]]
+    value_maps: dict[str, dict[str, str]]
     payload_template: dict[str, dict[str, Any]]
 
     @classmethod
@@ -75,6 +82,10 @@ class MappingConfig:
             sheet_columns={
                 key: [str(alias) for alias in aliases]
                 for key, aliases in data.get("sheet_columns", {}).items()
+            },
+            value_maps={
+                str(map_name): {str(source): str(target) for source, target in values.items()}
+                for map_name, values in data.get("value_maps", {}).items()
             },
             payload_template=data.get("payload_template", {}),
         )

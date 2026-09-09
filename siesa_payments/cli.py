@@ -28,7 +28,10 @@ def _load_runtime(args: argparse.Namespace) -> RuntimeConfig:
         hub_operation=args.operation or runtime.hub_operation,
         siesa_connikey=args.connikey or runtime.siesa_connikey,
         siesa_connitoken=args.connitoken or runtime.siesa_connitoken,
+        siesa_client_id=args.client_id or runtime.siesa_client_id,
+        siesa_client_secret=args.client_secret or runtime.siesa_client_secret,
         siesa_id_compania=args.id_compania or runtime.siesa_id_compania,
+        siesa_id_ecosistema=args.id_ecosistema or runtime.siesa_id_ecosistema,
         siesa_id_documento=args.id_documento or runtime.siesa_id_documento,
         siesa_nombre_documento=args.nombre_documento or runtime.siesa_nombre_documento,
         hub_execute_path=args.execute_path or runtime.hub_execute_path,
@@ -43,6 +46,7 @@ def _load_mapping(runtime: RuntimeConfig) -> MappingConfig:
             operation=runtime.hub_operation,
             required_transaction_type=mapping.required_transaction_type,
             sheet_columns=mapping.sheet_columns,
+            value_maps=mapping.value_maps,
             payload_template=mapping.payload_template,
         )
     return mapping
@@ -67,8 +71,11 @@ def cmd_validate_connector(args: argparse.Namespace) -> int:
         connector_url=runtime.siesa_connector_url,
         connikey=runtime.siesa_connikey,
         connitoken=runtime.siesa_connitoken,
+        client_id=runtime.siesa_client_id,
+        client_secret=runtime.siesa_client_secret,
         id_compania=runtime.siesa_id_compania,
         id_documento=runtime.siesa_id_documento,
+        id_ecosistema=runtime.siesa_id_ecosistema,
         nombre_documento=runtime.siesa_nombre_documento,
         execute_path=runtime.hub_execute_path,
     )
@@ -99,7 +106,10 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--hub-base-url", help="Base URL de Siesa HUB.")
     common.add_argument("--connikey", help="Header Connikey copiado desde el Documentador.")
     common.add_argument("--connitoken", help="Header Connitoken copiado desde el Documentador.")
+    common.add_argument("--client-id", help="Header client_id de Apigee QA.")
+    common.add_argument("--client-secret", help="Header client_secret de Apigee QA.")
     common.add_argument("--id-compania", help="Parametro idCompania del conector.")
+    common.add_argument("--id-ecosistema", help="Parametro idEcoSistema del conector.")
     common.add_argument("--id-documento", help="Parametro idDocumento del conector.")
     common.add_argument("--nombre-documento", help="Parametro nombreDocumento del conector.")
     common.add_argument("--connector-id", help="ID de conector Siesa HUB.")

@@ -54,7 +54,10 @@ class SiesaHubClient:
         id_compania: str,
         id_documento: str,
         nombre_documento: str,
-        execute_path: str = "/api/v1/conectores",
+        id_ecosistema: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        execute_path: str = "/apisestandar/v3/conectoresimportar",
         connector_url: str | None = None,
         transport: Transport | None = None,
         timeout: int = 30,
@@ -63,6 +66,9 @@ class SiesaHubClient:
         self.connikey = connikey
         self.connitoken = connitoken
         self.id_compania = id_compania
+        self.id_ecosistema = id_ecosistema
+        self.client_id = client_id
+        self.client_secret = client_secret
         self.id_documento = id_documento
         self.nombre_documento = nombre_documento
         self.execute_path = execute_path
@@ -77,16 +83,23 @@ class SiesaHubClient:
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
+        if self.client_id:
+            headers["client_id"] = self.client_id
+        if self.client_secret:
+            headers["client_secret"] = self.client_secret
         if idempotency_key:
             headers["Idempotency-Key"] = idempotency_key
         return headers
 
     def _params(self) -> dict[str, str]:
-        return {
+        params = {
             "idCompania": self.id_compania,
             "idDocumento": self.id_documento,
             "nombreDocumento": self.nombre_documento,
         }
+        if self.id_ecosistema:
+            params["idEcoSistema"] = self.id_ecosistema
+        return params
 
     def _url(self) -> str:
         if self.connector_url:
@@ -114,7 +127,12 @@ class SiesaHubClient:
         return {
             "method": "POST",
             "url": urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, parsed.fragment)),
-            "headers": {"Connikey": "***", "Connitoken": "***"},
+            "headers": {
+                "Connikey": "***",
+                "Connitoken": "***",
+                "client_id": "***" if self.client_id else None,
+                "client_secret": "***" if self.client_secret else None,
+            },
             "params": self._params(),
         }
 

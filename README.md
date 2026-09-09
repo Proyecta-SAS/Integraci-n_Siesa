@@ -105,6 +105,11 @@ La primera visual local esta en `web/index.html`. Se puede abrir directamente en
 Sheets -> Validacion -> Siesa HUB -> Recibos de caja / Clientes -> Trazabilidad
 ```
 
+## Estado QA validado
+
+El 2026-09-09 se ejecuto una prueba real en QA con respuesta exitosa de Siesa y verificacion visual en ERP: recibo `RC-00000006`, cliente `1000456076`, fecha `2026-06-30`, valor `$1,000`, caja `01`, medio `EFE-EFECTIVO`.
+
+Esta version deja probado el envio de recibo de caja. Para produccion falta confirmar con Siesa la parametrizacion bancaria de transferencia/consignacion y cerrar el ruteo de las 4 fuentes Alegra/Make.
 ## QA y paso a produccion
 
 Checklist minimo:

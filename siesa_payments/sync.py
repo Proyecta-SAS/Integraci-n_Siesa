@@ -77,8 +77,11 @@ class PaymentSyncService:
             connector_url=self.runtime.siesa_connector_url,
             connikey=self.runtime.siesa_connikey,
             connitoken=self.runtime.siesa_connitoken,
+            client_id=self.runtime.siesa_client_id,
+            client_secret=self.runtime.siesa_client_secret,
             id_compania=self.runtime.siesa_id_compania,
             id_documento=self.runtime.siesa_id_documento,
+            id_ecosistema=self.runtime.siesa_id_ecosistema,
             nombre_documento=self.runtime.siesa_nombre_documento,
             execute_path=self.runtime.hub_execute_path,
         )

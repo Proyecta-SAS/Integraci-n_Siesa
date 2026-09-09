@@ -36,7 +36,10 @@ def runtime_for(tmp_path: Path, csv_path: Path, dry_run: bool) -> RuntimeConfig:
         hub_operation="API_v1_ReciboCaja",
         siesa_connikey="key",
         siesa_connitoken="token",
+        siesa_client_id="client",
+        siesa_client_secret="secret",
         siesa_id_compania="1",
+        siesa_id_ecosistema="10",
         siesa_id_documento="142888",
         siesa_nombre_documento="API_v1_ReciboCaja",
         hub_execute_path="/hub/execute",
@@ -81,9 +84,12 @@ class SyncTests(TestCase):
                 base_url="https://siesa.example",
                 connikey="key",
                 connitoken="token",
+                client_id="client",
+                client_secret="secret",
                 id_compania="1",
                 id_documento="142888",
                 nombre_documento="API_v1_ReciboCaja",
+                id_ecosistema="10",
                 execute_path="/hub/execute",
                 transport=transport,
             )
@@ -94,6 +100,9 @@ class SyncTests(TestCase):
             self.assertEqual(transport.calls[0][0], "POST")
             self.assertIn("/hub/execute", transport.calls[0][1])
             self.assertIn("idCompania=1", transport.calls[0][1])
+            self.assertIn("idEcoSistema=10", transport.calls[0][1])
             self.assertEqual(transport.calls[0][2]["Connikey"], "key")
             self.assertEqual(transport.calls[0][2]["Connitoken"], "token")
+            self.assertEqual(transport.calls[0][2]["client_id"], "client")
+            self.assertEqual(transport.calls[0][2]["client_secret"], "secret")
             self.assertTrue((tmp_path / "state.json").exists())
