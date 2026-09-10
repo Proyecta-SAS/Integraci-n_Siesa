@@ -38,3 +38,20 @@ Pendiente antes de produccion:
 
 - Confirmar con Siesa si transferencia/consignacion debe quedar como `CG1` y cuales son `F358_ID_BANCO`, `F358_NRO_CUENTA` y `f358_docto_banco_cg` validos.
 - Validar el ruteo completo de las 4 fuentes Alegra/Make antes de automatizar lotes reales.
+
+## Evidencia QA desde Google Sheets - 2026-09-10
+
+Prueba enviada contra Apigee QA leyendo la fila real de `Ingreso / Egreso` en Google Sheets.
+
+- Cliente: `1000033853 - LANCHEROS PEÑA JUAN CAMILO`.
+- Documento aplicado: `FVE-00000006-00`.
+- Fecha del recibo: `2026-06-30`.
+- Valor enviado: `$1,000`.
+- Respuesta API: `codigo=0`, `mensaje=Transaccion Exitosa`, `detalle=Importacion exitosa`.
+- Verificacion ERP: `Consulta de movimiento de caja`, documento `RC-00000007`, medio `EFE-EFECTIVO`, caja `01`, debito `$1,000.00`.
+
+## Produccion Siesa
+
+Siesa documenta dos accesos del Gestor de Integraciones: QA para pruebas y CORE para produccion. El paso productivo es viable cuando Siesa/Avanzar entregue la Request URL de CORE/produccion del conector `142888 - API_v1_ReciboCaja`, headers productivos `Connikey`/`Connitoken` y confirme que el documento `RC`, caja, cobrador, unidad de negocio, flujo efectivo y medio de pago existen igual en productivo.
+
+No se debe reutilizar el endpoint ni token QA en produccion. Antes del primer envio real se debe ejecutar un dry-run con filas productivas, validar que cada fila traiga documento cruce desde Sheets y activar deduplicacion con estado persistente.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from unittest import TestCase
+from unittest.mock import patch
 
 from siesa_payments.config import MappingConfig
 from siesa_payments.mapper import build_payload
@@ -42,3 +43,48 @@ class MappingTests(TestCase):
         self.assertTrue(payload["RCyotrosingresos"][0]["F357_REFERENCIA"])
         self.assertEqual(payload["CxC"][0]["F354_VALOR_CR"], "+000000000480000.0000")
         self.assertEqual(payload["CxC"][0]["F353_NRO_CUOTA_CRUCE"], "000")
+
+    def test_reads_cross_document_from_single_sheet_column(self) -> None:
+        csv_text = (
+            "Cuenta bancaria,Fecha,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,"
+            "Tipo de identificacion, Numero de identificacion *,Nombre *,Documento cruce\n"
+            "CAJA GENERAL,30/06/2026,Ingreso,Transferencia,130505 CLIENTES,1,1000,"
+            "CC - Cedula de ciudadania,1000033853,Juan,FVE-00000006-00\n"
+        )
+
+        payment = read_csv_text(csv_text, self.mapping)[0]
+        payload = build_payload(payment, self.mapping)
+
+        self.assertEqual(payload["CxC"][0]["F353_ID_TIPO_DOCTO_CRUCE"], "FVE")
+        self.assertEqual(payload["CxC"][0]["F353_CONSEC_DOCTO_CRUCE"], "00000006")
+        self.assertEqual(payload["CxC"][0]["F353_NRO_CUOTA_CRUCE"], "000")
+
+    def test_sheet_cross_values_override_env_defaults(self) -> None:
+        csv_text = (
+            "Cuenta bancaria,Fecha,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,"
+            "Tipo de identificacion, Numero de identificacion *,Nombre *,Tipo docto cruce,"
+            "Consecutivo cruce,Cuota cruce,C.O. cruce,U.N. cruce,Sucursal cruce,Auxiliar cruce\n"
+            "CAJA GENERAL,30/06/2026,Ingreso,Transferencia,130505 CLIENTES,1,1000,"
+            "CC - Cedula de ciudadania,1000033853,Juan,FVE,6,00,001,03,001,13050501\n"
+        )
+        env = {
+            "SIESA_TIPO_DOCTO_CRUCE": "ENV",
+            "SIESA_CONSEC_DOCTO_CRUCE": "999",
+            "SIESA_NRO_CUOTA_CRUCE": "9",
+            "SIESA_ID_CO_CRUCE": "999",
+            "SIESA_ID_UN_CRUCE": "99",
+            "SIESA_SUCURSAL_DOCTO_CRUCE": "999",
+            "SIESA_AUXILIAR_DOCTO_CRUCE": "99999999",
+        }
+
+        payment = read_csv_text(csv_text, self.mapping)[0]
+        with patch.dict("os.environ", env, clear=False):
+            payload = build_payload(payment, self.mapping)
+
+        self.assertEqual(payload["CxC"][0]["F353_ID_TIPO_DOCTO_CRUCE"], "FVE")
+        self.assertEqual(payload["CxC"][0]["F353_CONSEC_DOCTO_CRUCE"], "00000006")
+        self.assertEqual(payload["CxC"][0]["F353_NRO_CUOTA_CRUCE"], "000")
+        self.assertEqual(payload["CxC"][0]["F353_ID_CO_DOCTO_CRUCE"], "001")
+        self.assertEqual(payload["CxC"][0]["F353_ID_UN_DOCTO_CRUCE"], "03")
+        self.assertEqual(payload["CxC"][0]["F353_ID_SUCURSAL_DOCTO_CRUCE"], "001")
+        self.assertEqual(payload["CxC"][0]["F353_ID_AUXILIAR_DOCTO_CRUCE"], "13050501")

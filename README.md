@@ -21,6 +21,14 @@ Nombre, Apellido, Tipo de persona, Responsabilidad tributaria,
 Municipio / Departamento, Direccion
 ```
 
+Para produccion el cruce de cartera debe venir por fila. El sistema soporta agregar columnas al final de la hoja sin romper la estructura actual:
+
+```text
+Documento cruce, C.O. cruce, U.N. cruce, Sucursal cruce, Auxiliar cruce
+```
+
+`Documento cruce` puede venir completo como `FVE-00000006-00`. Tambien se soportan columnas separadas: `Tipo docto cruce`, `Consecutivo cruce` y `Cuota cruce`.
+
 La pestana `ID` funciona como catalogo de seleccion de la hoja. Para Siesa se deja el mapeo final en `config/siesa_recibo_caja_mapping.json` porque los codigos contables/documentales del conector 142888 dependen de la parametrizacion del ERP.
 
 ## Flujo
@@ -105,9 +113,19 @@ La primera visual local esta en `web/index.html`. Se puede abrir directamente en
 Sheets -> Validacion -> Siesa HUB -> Recibos de caja / Clientes -> Trazabilidad
 ```
 
+Para Railway el repositorio incluye `Procfile`:
+
+```text
+web: python -m siesa_payments.web_server --host 0.0.0.0
+```
+
+Railway debe recibir las variables `SIESA_*` como variables de entorno. Para produccion se debe usar un estado persistente o volumen para `SIESA_STATE_FILE`, porque el filesystem del contenedor puede reiniciarse.
+
 ## Estado QA validado
 
 El 2026-09-09 se ejecuto una prueba real en QA con respuesta exitosa de Siesa y verificacion visual en ERP: recibo `RC-00000006`, cliente `1000456076`, fecha `2026-06-30`, valor `$1,000`, caja `01`, medio `EFE-EFECTIVO`.
+
+El 2026-09-10 se ejecuto una prueba real desde Google Sheets contra QA con respuesta exitosa de Siesa y verificacion visual en ERP: recibo `RC-00000007`, cliente `1000033853`, fecha `2026-06-30`, valor `$1,000`, caja `01`, medio `EFE-EFECTIVO`.
 
 Esta version deja probado el envio de recibo de caja. Para produccion falta confirmar con Siesa la parametrizacion bancaria de transferencia/consignacion y cerrar el ruteo de las 4 fuentes Alegra/Make.
 ## QA y paso a produccion

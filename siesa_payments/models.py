@@ -59,6 +59,15 @@ def format_integer(value: Any, width: int) -> str:
     decimal_value = parse_decimal(value)
     return str(int(decimal_value)).zfill(width)
 
+
+def parse_cross_document(value: Any) -> tuple[str, str, str]:
+    text = clean_text(value).upper()
+    match = re.match(r"^([A-Z0-9]+)-([0-9]+)(?:-([0-9]+))?$", text)
+    if not match:
+        return "", "", ""
+    return match.group(1), match.group(2), match.group(3) or ""
+
+
 def parse_date(value: Any) -> date:
     text = clean_text(value)
     if not text:
@@ -94,10 +103,21 @@ class PaymentRow:
     tax_responsibility: str
     municipality_department: str
     address: str
+    cross_document: str
+    cross_document_type: str
+    cross_document_number: str
+    cross_installment: str
+    cross_co: str
+    cross_un: str
+    cross_branch: str
+    cross_auxiliary: str
     source_row: int
 
     @classmethod
     def from_raw(cls, data: dict[str, Any], source_row: int) -> "PaymentRow":
+        parsed_cross_type, parsed_cross_number, parsed_cross_installment = parse_cross_document(
+            data.get("cross_document")
+        )
         return cls(
             bank_account=clean_text(data.get("bank_account")),
             payment_date=parse_date(data.get("payment_date")),
@@ -120,6 +140,14 @@ class PaymentRow:
             tax_responsibility=clean_text(data.get("tax_responsibility")),
             municipality_department=clean_text(data.get("municipality_department")),
             address=clean_text(data.get("address")),
+            cross_document=clean_text(data.get("cross_document")),
+            cross_document_type=clean_text(data.get("cross_document_type")) or parsed_cross_type,
+            cross_document_number=clean_text(data.get("cross_document_number")) or parsed_cross_number,
+            cross_installment=clean_text(data.get("cross_installment")) or parsed_cross_installment,
+            cross_co=clean_text(data.get("cross_co")),
+            cross_un=clean_text(data.get("cross_un")),
+            cross_branch=clean_text(data.get("cross_branch")),
+            cross_auxiliary=clean_text(data.get("cross_auxiliary")),
             source_row=source_row,
         )
 

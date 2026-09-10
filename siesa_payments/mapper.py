@@ -4,7 +4,15 @@ import os
 from typing import Any
 
 from .config import MappingConfig
-from .models import PAYMENT_FIELD_NAMES, PaymentRow, format_decimal_signed, format_integer, normalize_header, parse_decimal
+from .models import (
+    PAYMENT_FIELD_NAMES,
+    PaymentRow,
+    clean_text,
+    format_decimal_signed,
+    format_integer,
+    normalize_header,
+    parse_decimal,
+)
 
 
 class MappingError(RuntimeError):
@@ -85,6 +93,16 @@ def build_payload(payment: PaymentRow, mapping: MappingConfig) -> dict[str, Any]
             if not env_name:
                 raise MappingError(f"mapping env sin nombre para: {target_path}")
             value = os.getenv(env_name, rule.get("default"))
+        elif source == "payment_or_env":
+            field_name = str(rule.get("field", ""))
+            env_name = str(rule.get("name", ""))
+            if field_name not in PAYMENT_FIELD_NAMES:
+                raise MappingError(f"campo de pago desconocido en mapping: {field_name}")
+            if not env_name:
+                raise MappingError(f"mapping env sin nombre para: {target_path}")
+            value = payment.to_payload_value(field_name, rule.get("format"))
+            if not clean_text(value):
+                value = os.getenv(env_name, rule.get("default"))
         elif source == "payment":
             field_name = str(rule.get("field", ""))
             if field_name not in PAYMENT_FIELD_NAMES:

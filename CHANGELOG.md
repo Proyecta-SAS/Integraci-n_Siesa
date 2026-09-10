@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0 - 2026-09-10
+
+- Agrega cruce dinamico de cartera desde columnas de Google Sheets.
+- Permite `Documento cruce` completo como `FVE-00000006-00` o columnas separadas de tipo, consecutivo y cuota.
+- Mantiene variables `SIESA_*` como respaldo para QA cuando el Sheets todavia no trae cruce por fila.
+- Muestra en la visual si el cruce sale de Sheets, de `.env` o esta incompleto.
+- Prepara despliegue Railway con `Procfile` y soporte de puerto dinamico `PORT`.
+- Documenta evidencia QA desde Sheets: recibo `RC-00000007`, cliente `1000033853`, valor `$1,000`, fecha `2026-06-30`.
+
 ## 0.6.0 - 2026-09-09
 
 - Valida envio real en QA del conector `142888 - API_v1_ReciboCaja` contra Apigee/Siesa.

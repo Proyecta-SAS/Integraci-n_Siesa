@@ -78,6 +78,47 @@
     "address": [
       "Dirección ( * si pones municipio)",
       "Direccion"
+    ],
+    "cross_document": [
+      "Documento cruce",
+      "Documento CxC",
+      "Factura",
+      "Factura cruce"
+    ],
+    "cross_document_type": [
+      "Tipo docto cruce",
+      "Tipo documento cruce",
+      "Tipo factura"
+    ],
+    "cross_document_number": [
+      "Consecutivo docto cruce",
+      "Consecutivo cruce",
+      "Numero docto cruce",
+      "Numero factura",
+      "NÃºmero factura"
+    ],
+    "cross_installment": [
+      "Cuota cruce",
+      "Nro cuota cruce",
+      "Numero cuota"
+    ],
+    "cross_co": [
+      "C.O. cruce",
+      "CO cruce",
+      "Centro operacion cruce"
+    ],
+    "cross_un": [
+      "U.N. cruce",
+      "UN cruce",
+      "Unidad negocio cruce"
+    ],
+    "cross_branch": [
+      "Sucursal cruce",
+      "Sucursal docto cruce"
+    ],
+    "cross_auxiliary": [
+      "Auxiliar cruce",
+      "Auxiliar docto cruce"
     ]
   },
   "payload_template": {
@@ -325,14 +366,17 @@
       "default": "0"
     },
     "CxC.0.F353_ID_TIPO_DOCTO_CRUCE": {
-      "source": "env",
+      "source": "payment_or_env",
+      "field": "cross_document_type",
       "name": "SIESA_TIPO_DOCTO_CRUCE",
       "default": ""
     },
     "CxC.0.F353_CONSEC_DOCTO_CRUCE": {
-      "source": "env",
+      "source": "payment_or_env",
+      "field": "cross_document_number",
       "name": "SIESA_CONSEC_DOCTO_CRUCE",
-      "default": ""
+      "default": "",
+      "format": "integer_8"
     },
     "CxC.0.F_CIA": {
       "source": "env",
@@ -356,27 +400,32 @@
       "format": "integer_8"
     },
     "CxC.0.F353_ID_AUXILIAR_DOCTO_CRUCE": {
-      "source": "env",
+      "source": "payment_or_env",
+      "field": "cross_auxiliary",
       "name": "SIESA_AUXILIAR_DOCTO_CRUCE",
       "default": ""
     },
     "CxC.0.F353_ID_CO_DOCTO_CRUCE": {
-      "source": "env",
+      "source": "payment_or_env",
+      "field": "cross_co",
       "name": "SIESA_ID_CO_CRUCE",
       "default": ""
     },
     "CxC.0.F353_ID_UN_DOCTO_CRUCE": {
-      "source": "env",
+      "source": "payment_or_env",
+      "field": "cross_un",
       "name": "SIESA_ID_UN_CRUCE",
       "default": ""
     },
     "CxC.0.F353_ID_SUCURSAL_DOCTO_CRUCE": {
-      "source": "env",
+      "source": "payment_or_env",
+      "field": "cross_branch",
       "name": "SIESA_SUCURSAL_DOCTO_CRUCE",
       "default": ""
     },
     "CxC.0.F353_NRO_CUOTA_CRUCE": {
-      "source": "env",
+      "source": "payment_or_env",
+      "field": "cross_installment",
       "name": "SIESA_NRO_CUOTA_CRUCE",
       "default": "0",
       "format": "integer_3"

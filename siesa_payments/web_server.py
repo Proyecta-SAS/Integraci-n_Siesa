@@ -25,8 +25,15 @@ REQUIRED_SEND_ENV = (
     "SIESA_ID_CO",
     "SIESA_ID_CAJA",
     "SIESA_ID_COBRADOR",
-    "SIESA_TIPO_DOCTO_CRUCE",
-    "SIESA_CONSEC_DOCTO_CRUCE",
+)
+CROSS_FIELD_ENV = (
+    ("cross_document_type", "SIESA_TIPO_DOCTO_CRUCE"),
+    ("cross_document_number", "SIESA_CONSEC_DOCTO_CRUCE"),
+    ("cross_installment", "SIESA_NRO_CUOTA_CRUCE"),
+    ("cross_co", "SIESA_ID_CO_CRUCE"),
+    ("cross_un", "SIESA_ID_UN_CRUCE"),
+    ("cross_branch", "SIESA_SUCURSAL_DOCTO_CRUCE"),
+    ("cross_auxiliary", "SIESA_AUXILIAR_DOCTO_CRUCE"),
 )
 
 
@@ -59,6 +66,7 @@ def _runtime_for_request(dry_run: bool) -> RuntimeConfig:
 
 def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
     missing_send_env = [name for name in REQUIRED_SEND_ENV if not os.getenv(name)]
+    missing_cross_env = [env_name for _field_name, env_name in CROSS_FIELD_ENV if not os.getenv(env_name)]
     return {
         "environment": runtime.environment,
         "dry_run": runtime.dry_run,
@@ -77,6 +85,8 @@ def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
         "client_id_configured": bool(runtime.siesa_client_id),
         "client_secret_configured": bool(runtime.siesa_client_secret),
         "missing_send_env": missing_send_env,
+        "cross_fallback_configured": not missing_cross_env,
+        "missing_cross_env": missing_cross_env,
         "ready_to_send": bool(
             runtime.siesa_connector_url
             and runtime.siesa_connikey
@@ -87,6 +97,23 @@ def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
     }
 
 
+def _cross_status(payment: Any) -> tuple[bool, str]:
+    sheet_count = 0
+    env_count = 0
+    for field_name, env_name in CROSS_FIELD_ENV:
+        if getattr(payment, field_name):
+            sheet_count += 1
+        elif os.getenv(env_name):
+            env_count += 1
+        else:
+            return False, "missing"
+    if sheet_count == len(CROSS_FIELD_ENV):
+        return True, "sheet"
+    if env_count == len(CROSS_FIELD_ENV):
+        return True, "env"
+    return True, "mixed"
+
+
 def inspect_rows(limit: int = 25) -> dict[str, Any]:
     runtime = _runtime_for_request(dry_run=True)
     mapping = MappingConfig.load(runtime.mapping_file)
@@ -95,11 +122,24 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
     for payment in iter_payments(runtime.input_csv, runtime.sheets_csv_url, mapping):
         issues = validator.validate(payment)
         flow = decide_flow(payment)
+        cross_ready, cross_source = _cross_status(payment)
         rows.append(
             {
                 "source_row": payment.source_row,
                 "flow": flow.key,
                 "identity_number": payment.identity_number,
+                "cross_document": payment.cross_document
+                or "-".join(
+                    part
+                    for part in [
+                        payment.cross_document_type,
+                        payment.cross_document_number,
+                        payment.cross_installment,
+                    ]
+                    if part
+                ),
+                "cross_ready": cross_ready,
+                "cross_source": cross_source,
                 "customer": " ".join(part for part in [payment.first_name, payment.last_name] if part).strip()
                 or payment.contact,
                 "payment_date": payment.payment_date.isoformat(),
@@ -129,6 +169,9 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         try:
+            if parsed.path == "/health":
+                self._json({"ok": True, "service": "activadores-siesa"})
+                return
             if parsed.path == "/api/status":
                 self._json({"ok": True, "runtime": _redacted_runtime(_runtime_for_request(dry_run=True))})
                 return
@@ -185,8 +228,8 @@ class AppHandler(BaseHTTPRequestHandler):
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Servidor local para la visual de Activadores Siesa.")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=4182)
+    parser.add_argument("--host", default=os.getenv("HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "4182")))
     args = parser.parse_args(argv)
 
     server = ThreadingHTTPServer((args.host, args.port), AppHandler)

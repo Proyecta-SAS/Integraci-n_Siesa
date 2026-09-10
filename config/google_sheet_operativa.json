@@ -5,7 +5,18 @@
   "operational_sheet": {
     "sheet_id": 0,
     "title": "Ingreso / Egreso",
-    "header_range": "A1:V1",
+    "header_range": "A1:AD1",
+    "base_header_range": "A1:V1",
+    "supported_dynamic_columns": [
+      "Documento cruce",
+      "Tipo docto cruce",
+      "Consecutivo cruce",
+      "Cuota cruce",
+      "C.O. cruce",
+      "U.N. cruce",
+      "Sucursal cruce",
+      "Auxiliar cruce"
+    ],
     "csv_export_url": "https://docs.google.com/spreadsheets/d/1TuXSZESNm1xJGJvXLMKTq2bAY1ZvmCl6n8Aez1FRVp8/export?format=csv&gid=0"
   },
   "catalog_sheet": {

@@ -62,13 +62,17 @@ async function loadStatus() {
   }
   if (data.runtime.missing_send_env?.length) {
     resultOutput.textContent = `Pendiente: completa ${data.runtime.missing_send_env.join(", ")} antes de enviar QA.`;
+    return;
+  }
+  if (!data.runtime.cross_fallback_configured) {
+    resultOutput.textContent = "Cruce dinamico activo: cada fila debe traer Documento cruce o columnas separadas de CxC.";
   }
 }
 
 function renderRows(rows) {
   rowCount.textContent = `${rows.length} filas`;
   if (!rows.length) {
-    rowsBody.innerHTML = '<tr><td colspan="8">No hay filas de pago para procesar.</td></tr>';
+    rowsBody.innerHTML = '<tr><td colspan="9">No hay filas de pago para procesar.</td></tr>';
     return;
   }
   rowsBody.innerHTML = rows.map((row) => `
@@ -76,6 +80,7 @@ function renderRows(rows) {
       <td>${row.source_row}</td>
       <td>${row.customer || "-"}</td>
       <td>${row.identity_number || "-"}</td>
+      <td class="${row.cross_ready ? "state-ok" : "state-warn"}">${row.cross_document || row.cross_source || "-"}</td>
       <td>${row.payment_date}</td>
       <td>${row.method || "-"}</td>
       <td>${row.amount}</td>
@@ -117,6 +122,17 @@ async function sendQa() {
         error: "Faltan datos operativos antes de enviar QA.",
         missing: status.runtime.missing_send_env,
       });
+      return;
+    }
+    const rowsData = await api("/api/payments?limit=50");
+    const missingCrossRows = rowsData.rows.filter((row) => !row.cross_ready).map((row) => row.source_row);
+    if (missingCrossRows.length) {
+      writeJson(resultOutput, {
+        ok: false,
+        error: "Faltan datos de documento cruce en Sheets o variables SIESA_* de respaldo.",
+        rows: missingCrossRows,
+      });
+      renderRows(rowsData.rows);
       return;
     }
     const data = await api("/api/sync/send", { method: "POST" });

@@ -40,6 +40,14 @@ Aunque el archivo conserva nombre de Alegra, en esta integracion se usa como ban
 | Responsabilidad tributaria | `tax_responsibility` | Regimen/responsabilidad tributaria. |
 | Municipio / Departamento | `municipality_department` | Ubicacion del tercero, si aplica. |
 | Direccion | `address` | Direccion del tercero, si aplica. |
+| Documento cruce | `cross_document` | Documento completo a aplicar, por ejemplo `FVE-00000006-00`. |
+| Tipo docto cruce | `cross_document_type` | Tipo del documento de cartera si no se usa `Documento cruce`, por ejemplo `FVE`. |
+| Consecutivo cruce | `cross_document_number` | Consecutivo del documento de cartera, por ejemplo `00000006`. |
+| Cuota cruce | `cross_installment` | Cuota del documento, por ejemplo `00`. |
+| C.O. cruce | `cross_co` | Centro de operacion del documento aplicado. |
+| U.N. cruce | `cross_un` | Unidad de negocio del documento aplicado. |
+| Sucursal cruce | `cross_branch` | Sucursal del documento aplicado. |
+| Auxiliar cruce | `cross_auxiliary` | Auxiliar contable del documento aplicado. |
 
 ## Validaciones detectadas en la hoja
 
@@ -91,4 +99,4 @@ La parametrizacion de recibos de caja de Siesa indica que varios valores son obl
 
 Los campos obligatorios del Body dependen de la parametrizacion de Siesa, especialmente centro de operacion, tipo de documento, caja, moneda, cobrador y documento de CxC a cruzar. Esos valores quedan en variables `SIESA_*` para no amarrar el codigo a una compania o ambiente.
 
-La seccion `CxC` exige datos del documento/factura que recibe el pago: tipo de documento cruce, consecutivo, auxiliar, centro de operacion, unidad de negocio, sucursal y cuota. Para QA se pueden cargar por variables de entorno contra una factura conocida; para produccion deben venir por fila desde la hoja o resolverse con una consulta previa a cartera.
+La seccion `CxC` exige datos del documento/factura que recibe el pago: tipo de documento cruce, consecutivo, auxiliar, centro de operacion, unidad de negocio, sucursal y cuota. El mapeo toma primero los valores de cada fila de Sheets y, si vienen vacios, usa las variables `SIESA_*` como respaldo para pruebas QA controladas.
