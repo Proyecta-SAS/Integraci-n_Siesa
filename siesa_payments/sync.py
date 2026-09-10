@@ -88,6 +88,8 @@ class PaymentSyncService:
 
     def sync(self, dry_run: bool | None = None) -> SyncResult:
         is_dry_run = self.runtime.dry_run if dry_run is None else dry_run
+        if not is_dry_run and not self.runtime.allow_send:
+            raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
         counters = {
             "processed": 0,
             "sent": 0,

@@ -67,15 +67,33 @@ async function loadStatus() {
   if (!data.runtime.cross_fallback_configured) {
     resultOutput.textContent = "Cruce dinamico activo: cada fila debe traer Documento cruce o columnas separadas de CxC.";
   }
+  if (!data.runtime.send_unlocked) {
+    sendButton.disabled = true;
+    sendButton.classList.add("locked");
+    sendButton.querySelector("small").textContent = "Bloqueado hasta SIESA_ALLOW_SEND=true";
+  } else {
+    sendButton.disabled = false;
+    sendButton.classList.remove("locked");
+    sendButton.querySelector("small").textContent = "Crea recibo en Siesa pruebas";
+  }
 }
 
 function renderRows(rows) {
   rowCount.textContent = `${rows.length} filas`;
   if (!rows.length) {
-    rowsBody.innerHTML = '<tr><td colspan="9">No hay filas de pago para procesar.</td></tr>';
+    rowsBody.innerHTML = '<tr><td colspan="10">No hay filas de pago para procesar.</td></tr>';
     return;
   }
   rowsBody.innerHTML = rows.map((row) => `
+    ${(() => {
+      const details = row.issues?.length
+        ? row.issues.map((issue) => `${issue.field}: ${issue.message}`).join(" | ")
+        : row.cross_ready
+          ? "Lista para payload"
+          : "Falta documento cruce";
+      const status = row.valid && row.cross_ready ? "Lista" : "Revisar";
+      const statusClass = row.valid && row.cross_ready ? "state-ok" : "state-warn";
+      return `
     <tr>
       <td>${row.source_row}</td>
       <td>${row.customer || "-"}</td>
@@ -85,8 +103,11 @@ function renderRows(rows) {
       <td>${row.method || "-"}</td>
       <td>${row.amount}</td>
       <td>${row.flow}</td>
-      <td class="${row.valid ? "state-ok" : "state-warn"}">${row.valid ? "Valida" : "Revisar"}</td>
+      <td class="${statusClass}">${status}</td>
+      <td class="detail-cell">${details}</td>
     </tr>
+      `;
+    })()}
   `).join("");
 }
 
@@ -121,6 +142,13 @@ async function sendQa() {
         ok: false,
         error: "Faltan datos operativos antes de enviar QA.",
         missing: status.runtime.missing_send_env,
+      });
+      return;
+    }
+    if (!status.runtime.send_unlocked) {
+      writeJson(resultOutput, {
+        ok: false,
+        error: "Envio bloqueado por seguridad. Active SIESA_ALLOW_SEND=true solo cuando quiera crear recibos.",
       });
       return;
     }

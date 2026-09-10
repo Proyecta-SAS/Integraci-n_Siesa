@@ -25,6 +25,7 @@ def runtime_for(tmp_path: Path, csv_path: Path, dry_run: bool) -> RuntimeConfig:
     return RuntimeConfig(
         environment="qa",
         dry_run=dry_run,
+        allow_send=not dry_run,
         input_csv=str(csv_path),
         sheets_csv_url=None,
         mapping_file=Path("config/siesa_recibo_caja_mapping.json"),
@@ -106,3 +107,36 @@ class SyncTests(TestCase):
             self.assertEqual(transport.calls[0][2]["client_id"], "client")
             self.assertEqual(transport.calls[0][2]["client_secret"], "secret")
             self.assertTrue((tmp_path / "state.json").exists())
+
+    def test_send_requires_explicit_allow_send(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            csv_path = tmp_path / "payments.csv"
+            csv_path.write_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), encoding="utf-8")
+            runtime = runtime_for(tmp_path, csv_path, False)
+            runtime = RuntimeConfig(
+                environment=runtime.environment,
+                dry_run=runtime.dry_run,
+                allow_send=False,
+                input_csv=runtime.input_csv,
+                sheets_csv_url=runtime.sheets_csv_url,
+                mapping_file=runtime.mapping_file,
+                state_file=runtime.state_file,
+                log_file=runtime.log_file,
+                siesa_connector_url=runtime.siesa_connector_url,
+                hub_base_url=runtime.hub_base_url,
+                hub_connector_id=runtime.hub_connector_id,
+                hub_operation=runtime.hub_operation,
+                siesa_connikey=runtime.siesa_connikey,
+                siesa_connitoken=runtime.siesa_connitoken,
+                siesa_client_id=runtime.siesa_client_id,
+                siesa_client_secret=runtime.siesa_client_secret,
+                siesa_id_compania=runtime.siesa_id_compania,
+                siesa_id_ecosistema=runtime.siesa_id_ecosistema,
+                siesa_id_documento=runtime.siesa_id_documento,
+                siesa_nombre_documento=runtime.siesa_nombre_documento,
+                hub_execute_path=runtime.hub_execute_path,
+            )
+
+            with self.assertRaises(PermissionError):
+                PaymentSyncService(runtime, self.mapping).sync()

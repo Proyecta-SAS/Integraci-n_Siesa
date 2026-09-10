@@ -264,6 +264,14 @@ h3 {
   color: #fff;
 }
 
+.action-button.locked,
+.action-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(.2);
+  opacity: .58;
+  transform: none;
+}
+
 .action-button.danger small {
   color: rgba(255, 255, 255, .78);
 }
@@ -308,7 +316,7 @@ pre {
 
 table {
   width: 100%;
-  min-width: 860px;
+  min-width: 1080px;
   border-collapse: collapse;
 }
 
@@ -336,6 +344,14 @@ th {
 .state-warn {
   color: #b91c1c;
   font-weight: 850;
+}
+
+.detail-cell {
+  max-width: 280px;
+  color: #586577;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 @media (max-width: 980px) {

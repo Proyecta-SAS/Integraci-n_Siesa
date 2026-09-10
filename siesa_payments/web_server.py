@@ -43,6 +43,7 @@ def _runtime_for_request(dry_run: bool) -> RuntimeConfig:
     return RuntimeConfig(
         environment=runtime.environment,
         dry_run=dry_run,
+        allow_send=runtime.allow_send,
         input_csv=runtime.input_csv,
         sheets_csv_url=runtime.sheets_csv_url,
         mapping_file=runtime.mapping_file,
@@ -70,6 +71,7 @@ def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
     return {
         "environment": runtime.environment,
         "dry_run": runtime.dry_run,
+        "allow_send": runtime.allow_send,
         "source": "input_csv" if runtime.input_csv else "google_sheets_csv" if runtime.sheets_csv_url else "missing",
         "input_csv": runtime.input_csv,
         "sheets_csv_url_configured": bool(runtime.sheets_csv_url),
@@ -94,6 +96,7 @@ def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
             and runtime.siesa_id_compania
             and not missing_send_env
         ),
+        "send_unlocked": bool(runtime.allow_send),
     }
 
 
@@ -123,6 +126,15 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
         issues = validator.validate(payment)
         flow = decide_flow(payment)
         cross_ready, cross_source = _cross_status(payment)
+        row_issues = [asdict(issue) for issue in issues]
+        if not cross_ready:
+            row_issues.append(
+                {
+                    "row": payment.source_row,
+                    "field": "cross_document",
+                    "message": "faltan datos del documento cruce",
+                }
+            )
         rows.append(
             {
                 "source_row": payment.source_row,
@@ -146,7 +158,7 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
                 "method": payment.payment_method,
                 "amount": str(payment.amount),
                 "valid": not issues,
-                "issues": [asdict(issue) for issue in issues],
+                "issues": row_issues,
             }
         )
         if len(rows) >= limit:
@@ -156,6 +168,8 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
 
 def run_sync(send: bool) -> dict[str, Any]:
     runtime = _runtime_for_request(dry_run=not send)
+    if send and not runtime.allow_send:
+        raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
     mapping = MappingConfig.load(runtime.mapping_file)
     result = PaymentSyncService(runtime, mapping).sync(dry_run=not send)
     return {
