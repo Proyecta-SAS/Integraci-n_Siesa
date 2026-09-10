@@ -14,6 +14,22 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "si", "s"}
 
 
+def load_env_file(path: Path, override: bool = False) -> None:
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        name, separator, value = line.partition("=")
+        if not separator:
+            continue
+        name = name.strip()
+        if not name or (not override and name in os.environ):
+            continue
+        os.environ[name] = value.strip().strip('"').strip("'")
+
+
 @dataclass(frozen=True)
 class RuntimeConfig:
     environment: str

@@ -8,7 +8,7 @@
   </head>
   <body>
     <main class="launcher" aria-label="Activadores Sistemas Contables Siesa">
-      <section class="launcher-panel">
+      <section class="launcher-panel" id="launcherPanel">
         <div class="logo-frame">
           <img src="./assets/avanzar-logo-color.svg" alt="Avanzar">
         </div>
@@ -19,16 +19,16 @@
         </div>
 
         <nav class="activator-grid" aria-label="Activadores Siesa">
-          <button class="activator-button" type="button" data-company="antiguo">
+          <button class="activator-button" type="button" data-company="Siesa Antiguo" data-enabled="false">
             Siesa Antiguo
           </button>
-          <button class="activator-button" type="button" data-company="lidera">
+          <button class="activator-button" type="button" data-company="Siesa Lidera" data-enabled="false">
             Siesa Lidera
           </button>
-          <button class="activator-button active" type="button" data-company="alianza">
+          <button class="activator-button active" type="button" data-company="Siesa Alianza" data-enabled="true">
             Siesa Alianza
           </button>
-          <button class="activator-button" type="button" data-company="prosperar">
+          <button class="activator-button" type="button" data-company="Siesa Prosperar" data-enabled="false">
             Siesa Prosperar
           </button>
         </nav>
@@ -49,6 +49,71 @@
           <div>
             <span class="status-label">Conector</span>
             <strong>142888 - API_v1_ReciboCaja</strong>
+          </div>
+        </section>
+      </section>
+
+      <section class="module-panel hidden" id="modulePanel" aria-label="Modulo Siesa Alianza">
+        <header class="module-header">
+          <button class="back-button" type="button" id="backButton">Volver</button>
+          <div>
+            <span>Siesa Alianza</span>
+            <h2>Recibos de caja desde Google Sheets</h2>
+          </div>
+          <strong class="env-pill" id="envPill">QA</strong>
+        </header>
+
+        <section class="action-grid">
+          <button class="action-button" type="button" id="loadRowsButton">
+            Revisar Sheets
+            <small>Lee filas y valida campos</small>
+          </button>
+          <button class="action-button" type="button" id="dryRunButton">
+            Probar QA
+            <small>Genera payload sin crear recibo</small>
+          </button>
+          <button class="action-button danger" type="button" id="sendButton">
+            Enviar QA
+            <small>Crea recibo en Siesa pruebas</small>
+          </button>
+        </section>
+
+        <section class="result-grid">
+          <article class="result-card">
+            <span>Configuracion</span>
+            <pre id="statusOutput">Cargando estado...</pre>
+          </article>
+          <article class="result-card">
+            <span>Resultado</span>
+            <pre id="resultOutput">Selecciona una accion.</pre>
+          </article>
+        </section>
+
+        <section class="table-card">
+          <div class="table-header">
+            <h3>Filas detectadas</h3>
+            <span id="rowCount">0 filas</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fila</th>
+                  <th>Cliente</th>
+                  <th>Documento</th>
+                  <th>Fecha</th>
+                  <th>Metodo</th>
+                  <th>Valor</th>
+                  <th>Ruta</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="rowsBody">
+                <tr>
+                  <td colspan="8">Sin datos cargados.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
       </section>
