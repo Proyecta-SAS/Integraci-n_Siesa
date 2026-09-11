@@ -2,10 +2,10 @@
 
 ## 0.13.0 - 2026-09-11
 
-- Ajusta el cruce operativo solicitado en reunion contable: el tipo de documento enviado a Siesa queda fijo como `RC`.
-- Fija el auxiliar de documento aplicado como `28050505`.
-- La visual deja de exigir tipo de documento cruce y auxiliar desde Sheets para este flujo.
-- Mantiene el consecutivo, cuota, C.O., U.N. y sucursal desde la fila del Google Sheets.
+- Aclara el cruce operativo despues de la prueba QA: `RC` es el tipo del recibo creado, no del documento aplicado.
+- El documento aplicado vuelve a salir del Google Sheets, por ejemplo `FVE-00000006-00`.
+- El auxiliar aplicado vuelve a salir del Google Sheets; en la prueba manual exitosa se uso `13050501`.
+- La visual vuelve a exigir tipo de documento cruce y auxiliar desde Sheets o variables `SIESA_*` de respaldo.
 
 ## 0.9.0 - 2026-09-10
 

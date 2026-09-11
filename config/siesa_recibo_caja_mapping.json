@@ -140,7 +140,7 @@
     "Caja.0.F350_ID_TIPO_DOCTO": {
       "source": "env",
       "name": "SIESA_TIPO_DOCUMENTO",
-      "default": "RCW"
+      "default": "RC"
     },
     "Caja.0.F350_CONSEC_DOCTO": {
       "source": "env",
@@ -233,7 +233,7 @@
     "RCyotrosingresos.0.F350_ID_TIPO_DOCTO": {
       "source": "env",
       "name": "SIESA_TIPO_DOCUMENTO",
-      "default": "RCW"
+      "default": "RC"
     },
     "RCyotrosingresos.0.F350_CONSEC_DOCTO": {
       "source": "env",
@@ -366,8 +366,10 @@
       "default": "0"
     },
     "CxC.0.F353_ID_TIPO_DOCTO_CRUCE": {
-      "source": "literal",
-      "value": "RC"
+      "source": "payment_or_env",
+      "field": "cross_document_type",
+      "name": "SIESA_TIPO_DOCTO_CRUCE",
+      "default": ""
     },
     "CxC.0.F353_CONSEC_DOCTO_CRUCE": {
       "source": "payment_or_env",
@@ -389,7 +391,7 @@
     "CxC.0.F350_ID_TIPO_DOCTO": {
       "source": "env",
       "name": "SIESA_TIPO_DOCUMENTO",
-      "default": "RCW"
+      "default": "RC"
     },
     "CxC.0.F350_CONSEC_DOCTO": {
       "source": "env",
@@ -398,8 +400,10 @@
       "format": "integer_8"
     },
     "CxC.0.F353_ID_AUXILIAR_DOCTO_CRUCE": {
-      "source": "literal",
-      "value": "28050505"
+      "source": "payment_or_env",
+      "field": "cross_auxiliary",
+      "name": "SIESA_AUXILIAR_DOCTO_CRUCE",
+      "default": ""
     },
     "CxC.0.F353_ID_CO_DOCTO_CRUCE": {
       "source": "payment_or_env",

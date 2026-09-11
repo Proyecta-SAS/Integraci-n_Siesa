@@ -52,7 +52,7 @@ U.N. cruce
 Sucursal cruce
 ```
 
-Por definicion contable de Avanzar, el conector envia el tipo de documento aplicado como `RC` y el auxiliar aplicado como `28050505`, aunque la hoja conserve el documento fuente como `FVE-00000006-00`.
+Segun la validacion manual, `RC` corresponde al tipo de documento del recibo de caja creado. El documento aplicado/cruce conserva el tipo real del saldo abierto, por ejemplo `FVE-00000006-00`, y el auxiliar aplicado validado fue `13050501`.
 
 La hoja tambien tiene estas columnas de trazabilidad listas para uso operativo:
 
