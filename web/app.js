@@ -76,6 +76,54 @@ function setResult(title, message, items = [], tone = "info") {
     : "<li>Sin detalle adicional.</li>";
 }
 
+function shortValue(value, maxLength = 260) {
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return "";
+  }
+  return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
+}
+
+function readableSiesaResponse(value) {
+  if (!value) {
+    return "Siesa no retorno detalle.";
+  }
+  if (typeof value === "string") {
+    return shortValue(value);
+  }
+  if (Array.isArray(value)) {
+    return shortValue(value.map(readableSiesaResponse).filter(Boolean).join(" | "));
+  }
+
+  const keys = [
+    "mensaje",
+    "message",
+    "error",
+    "descripcion",
+    "description",
+    "detalle",
+    "detail",
+    "resultado",
+    "codigo",
+    "transaccion",
+  ];
+  const parts = keys
+    .filter((key) => value[key] !== undefined && value[key] !== null && value[key] !== "")
+    .map((key) => `${key}: ${typeof value[key] === "object" ? JSON.stringify(value[key]) : value[key]}`);
+
+  return shortValue(parts.length ? parts.join(" | ") : JSON.stringify(value));
+}
+
+async function latestFailureItems() {
+  const data = await api("/api/audit?event=failed&limit=10");
+  return (data.events || []).map((event) => {
+    const row = event.source_row ? `Fila ${event.source_row}` : "Fila sin numero";
+    const status = event.siesa_status_code ? `HTTP ${event.siesa_status_code}` : "Siesa";
+    const amount = event.amount ? formatMoney(event.amount) : "valor sin dato";
+    return `${row} - ${amount} - ${status}: ${readableSiesaResponse(event.siesa_response)}`;
+  });
+}
+
 function updateStatusSummary(runtime) {
   const missingCount = (runtime.missing_send_env || []).length;
   const cooldown = runtime.cooldown || {};
@@ -119,7 +167,7 @@ function updateRowsSummary(rows = []) {
     : "Sin pagos listos.";
 }
 
-function summarizeSyncResult(data, mode) {
+async function summarizeSyncResult(data, mode) {
   const result = data.result || data;
   const failed = Number(result.failed || 0);
   const invalid = Number(result.invalid || 0);
@@ -153,6 +201,31 @@ function summarizeSyncResult(data, mode) {
         `Duplicados detectados: ${skipped}`,
       ],
       "ok",
+    );
+    return;
+  }
+
+  if (mode === "send" && failed > 0) {
+    let items = [
+      `Procesadas: ${processed}`,
+      `Enviadas: ${sent}`,
+      `Fallidas: ${failed}`,
+      `Invalidas antes de enviar: ${invalid}`,
+      `Duplicadas: ${skipped}`,
+    ];
+    try {
+      const failureItems = await latestFailureItems();
+      if (failureItems.length) {
+        items = items.concat(failureItems);
+      }
+    } catch (error) {
+      items.push(`No se pudo leer el detalle del log: ${error.message}`);
+    }
+    setResult(
+      "Siesa rechazo el envio",
+      `${failed} fila(s) llegaron al conector, pero Siesa no creo el recibo.`,
+      items,
+      "warn",
     );
     return;
   }
@@ -290,7 +363,7 @@ async function dryRun() {
   await withBusy(dryRunButton, "Probando...", async () => {
     const data = await api("/api/sync/dry-run", { method: "POST" });
     writeJson(resultOutput, data);
-    summarizeSyncResult(data, "dry-run");
+    await summarizeSyncResult(data, "dry-run");
     await loadRows(false);
   });
 }
@@ -374,7 +447,7 @@ async function sendQa() {
     }
     const data = await api("/api/sync/send", { method: "POST" });
     writeJson(resultOutput, data);
-    summarizeSyncResult(data, "send");
+    await summarizeSyncResult(data, "send");
     await loadRows(false);
   });
 }

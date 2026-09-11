@@ -208,6 +208,37 @@ def preflight(limit: int = 100) -> dict[str, Any]:
     }
 
 
+def _audit_events(limit: int = 25, event_type: str | None = None) -> list[dict[str, Any]]:
+    runtime = _runtime_for_request(dry_run=True)
+    path = runtime.log_file
+    if not path.exists():
+        return []
+
+    events = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        status = event.get("status")
+        if event_type and status != event_type:
+            continue
+        events.append(
+            {
+                "status": status,
+                "source_row": event.get("source_row"),
+                "identity_number": event.get("identity_number"),
+                "amount": event.get("amount"),
+                "payment_date": event.get("payment_date"),
+                "siesa_status_code": event.get("siesa_status_code"),
+                "siesa_response": event.get("siesa_response"),
+            }
+        )
+    return events[-limit:]
+
+
 def run_sync(send: bool) -> dict[str, Any]:
     runtime = _runtime_for_request(dry_run=not send)
     if send and not runtime.allow_send:
@@ -240,6 +271,12 @@ class AppHandler(BaseHTTPRequestHandler):
                 params = parse_qs(parsed.query)
                 limit = int(params.get("limit", ["100"])[0])
                 self._json({"ok": True, **preflight(limit=limit)})
+                return
+            if parsed.path == "/api/audit":
+                params = parse_qs(parsed.query)
+                limit = int(params.get("limit", ["25"])[0])
+                event_type = params.get("event", [None])[0]
+                self._json({"ok": True, "events": _audit_events(limit=limit, event_type=event_type)})
                 return
             self._static(parsed.path)
         except Exception as exc:
