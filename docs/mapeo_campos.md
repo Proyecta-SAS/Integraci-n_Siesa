@@ -40,14 +40,14 @@ Aunque el archivo conserva nombre de Alegra, en esta integracion se usa como ban
 | Responsabilidad tributaria | `tax_responsibility` | Regimen/responsabilidad tributaria. |
 | Municipio / Departamento | `municipality_department` | Ubicacion del tercero, si aplica. |
 | Direccion | `address` | Direccion del tercero, si aplica. |
-| Documento cruce | `cross_document` | Documento completo a aplicar, por ejemplo `FVE-00000006-00`. |
-| Tipo docto cruce | `cross_document_type` | Tipo del documento de cartera si no se usa `Documento cruce`, por ejemplo `FVE`. |
+| Documento cruce | `cross_document` | Documento completo usado como fuente de consecutivo/cuota, por ejemplo `FVE-00000006-00`. En Siesa se envia con tipo fijo `RC`. |
+| Tipo docto cruce | `cross_document_type` | Campo historico soportado, pero el payload operativo usa `RC` fijo por definicion contable. |
 | Consecutivo cruce | `cross_document_number` | Consecutivo del documento de cartera, por ejemplo `00000006`. |
 | Cuota cruce | `cross_installment` | Cuota del documento, por ejemplo `00`. |
 | C.O. cruce | `cross_co` | Centro de operacion del documento aplicado. |
 | U.N. cruce | `cross_un` | Unidad de negocio del documento aplicado. |
 | Sucursal cruce | `cross_branch` | Sucursal del documento aplicado. |
-| Auxiliar cruce | `cross_auxiliary` | Auxiliar contable del documento aplicado. |
+| Auxiliar cruce | `cross_auxiliary` | Campo historico soportado, pero el payload operativo usa `28050505` fijo. |
 
 ## Validaciones detectadas en la hoja
 

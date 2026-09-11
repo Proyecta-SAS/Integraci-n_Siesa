@@ -75,7 +75,7 @@ class RuntimeConfig:
             state_file=Path(os.getenv("SIESA_STATE_FILE", ".state/siesa_payments_state.json")),
             log_file=Path(os.getenv("SIESA_LOG_FILE", "logs/siesa_payments.jsonl")),
             siesa_connector_url=os.getenv("SIESA_CONNECTOR_URL") or None,
-            hub_base_url=os.getenv("SIESA_HUB_BASE_URL") or None,
+            hub_base_url=os.getenv("SIESA_HUB_BASE_URL") or os.getenv("SIESA_BASE_URL") or None,
             hub_connector_id=os.getenv("SIESA_HUB_CONNECTOR_ID", "142888"),
             hub_operation=os.getenv("SIESA_HUB_OPERATION", "API_v1_ReciboCaja"),
             siesa_connikey=os.getenv("SIESA_CONN_KEY") or os.getenv("SIESA_CONNIKEY") or None,

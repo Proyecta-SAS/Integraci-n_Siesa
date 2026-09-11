@@ -4,8 +4,8 @@ Objetivo: crear un recibo de caja real en Siesa produccion con una fila controla
 
 ## Antes de la reunion
 
-1. Confirmar que el acceso usado es CORE/produccion, no QA.
-2. Tener la Request URL productiva del conector `142888 - API_v1_ReciboCaja`.
+1. Confirmar que el acceso usado es Local/produccion, no QA.
+2. Tener la Request URL productiva del conector `142888 - API_v1_ReciboCaja` sin placeholders.
 3. Tener `Connikey` y `Connitoken` productivos.
 4. Confirmar `idCompania`, `idDocumento=142888` y `nombreDocumento=API_v1_ReciboCaja`.
 5. Confirmar con contabilidad los codigos productivos:
@@ -26,10 +26,13 @@ SIESA_ENV=prod
 SIESA_DRY_RUN=true
 SIESA_ALLOW_SEND=false
 SIESA_SEND_COOLDOWN_MINUTES=15
-SIESA_CONNECTOR_URL=<Request URL CORE del conector 142888>
-SIESA_CONN_KEY=<Connikey CORE>
-SIESA_CONN_TOKEN=<Connitoken CORE>
-SIESA_ID_COMPANIA=<idCompania CORE>
+SIESA_CONNECTOR_URL=<Request URL Local/produccion del conector 142888 ya resuelta>
+# Alternativa si Siesa entrega base URL + ecosistema:
+SIESA_BASE_URL=<baseUrl Local/produccion sin placeholders>
+SIESA_ID_ECOSISTEMA=<idEcoSistema productivo>
+SIESA_CONN_KEY=<Connikey produccion>
+SIESA_CONN_TOKEN=<Connitoken produccion>
+SIESA_ID_COMPANIA=<idCompania produccion>
 SIESA_F_CIA=<compania ERP>
 SIESA_ID_CO=<centro operacion recibo>
 SIESA_TIPO_DOCUMENTO=RC
@@ -47,8 +50,9 @@ Documento cruce
 C.O. cruce
 U.N. cruce
 Sucursal cruce
-Auxiliar cruce
 ```
+
+Por definicion contable de Avanzar, el conector envia el tipo de documento aplicado como `RC` y el auxiliar aplicado como `28050505`, aunque la hoja conserve el documento fuente como `FVE-00000006-00`.
 
 La hoja tambien tiene estas columnas de trazabilidad listas para uso operativo:
 
@@ -95,6 +99,7 @@ La prueba queda aprobada si Siesa responde transaccion exitosa, el recibo aparec
 ## Criterios de bloqueo
 
 - La Request URL sigue apuntando a QA.
+- La Request URL conserva `{baseUrl}` o `{idEcoSistema}` sin reemplazar.
 - Faltan headers productivos.
 - La fila no trae documento cruce.
 - El documento cruce no tiene saldo disponible.

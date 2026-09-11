@@ -55,11 +55,12 @@ class MappingTests(TestCase):
         payment = read_csv_text(csv_text, self.mapping)[0]
         payload = build_payload(payment, self.mapping)
 
-        self.assertEqual(payload["CxC"][0]["F353_ID_TIPO_DOCTO_CRUCE"], "FVE")
+        self.assertEqual(payload["CxC"][0]["F353_ID_TIPO_DOCTO_CRUCE"], "RC")
         self.assertEqual(payload["CxC"][0]["F353_CONSEC_DOCTO_CRUCE"], "00000006")
         self.assertEqual(payload["CxC"][0]["F353_NRO_CUOTA_CRUCE"], "000")
+        self.assertEqual(payload["CxC"][0]["F353_ID_AUXILIAR_DOCTO_CRUCE"], "28050505")
 
-    def test_sheet_cross_values_override_env_defaults(self) -> None:
+    def test_operational_cross_values_use_accounting_defaults(self) -> None:
         csv_text = (
             "Cuenta bancaria,Fecha,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,"
             "Tipo de identificacion, Numero de identificacion *,Nombre *,Tipo docto cruce,"
@@ -81,10 +82,10 @@ class MappingTests(TestCase):
         with patch.dict("os.environ", env, clear=False):
             payload = build_payload(payment, self.mapping)
 
-        self.assertEqual(payload["CxC"][0]["F353_ID_TIPO_DOCTO_CRUCE"], "FVE")
+        self.assertEqual(payload["CxC"][0]["F353_ID_TIPO_DOCTO_CRUCE"], "RC")
         self.assertEqual(payload["CxC"][0]["F353_CONSEC_DOCTO_CRUCE"], "00000006")
         self.assertEqual(payload["CxC"][0]["F353_NRO_CUOTA_CRUCE"], "000")
         self.assertEqual(payload["CxC"][0]["F353_ID_CO_DOCTO_CRUCE"], "001")
         self.assertEqual(payload["CxC"][0]["F353_ID_UN_DOCTO_CRUCE"], "03")
         self.assertEqual(payload["CxC"][0]["F353_ID_SUCURSAL_DOCTO_CRUCE"], "001")
-        self.assertEqual(payload["CxC"][0]["F353_ID_AUXILIAR_DOCTO_CRUCE"], "13050501")
+        self.assertEqual(payload["CxC"][0]["F353_ID_AUXILIAR_DOCTO_CRUCE"], "28050505")

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.0 - 2026-09-11
+
+- Ajusta el cruce operativo solicitado en reunion contable: el tipo de documento enviado a Siesa queda fijo como `RC`.
+- Fija el auxiliar de documento aplicado como `28050505`.
+- La visual deja de exigir tipo de documento cruce y auxiliar desde Sheets para este flujo.
+- Mantiene el consecutivo, cuota, C.O., U.N. y sucursal desde la fila del Google Sheets.
+
 ## 0.9.0 - 2026-09-10
 
 - Agrega cruce dinamico de cartera desde columnas de Google Sheets.

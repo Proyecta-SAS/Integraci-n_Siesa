@@ -27,7 +27,9 @@ Para produccion el cruce de cartera debe venir por fila. El sistema soporta agre
 Documento cruce, C.O. cruce, U.N. cruce, Sucursal cruce, Auxiliar cruce
 ```
 
-`Documento cruce` puede venir completo como `FVE-00000006-00`. Tambien se soportan columnas separadas: `Tipo docto cruce`, `Consecutivo cruce` y `Cuota cruce`.
+`Documento cruce` puede venir completo como `FVE-00000006-00`. El sistema toma el consecutivo/cuota de esa celda, pero por definicion contable envia el tipo de documento aplicado como `RC`. Tambien se soportan columnas separadas: `Consecutivo cruce` y `Cuota cruce`.
+
+El auxiliar aplicado en Siesa queda fijo como `28050505`.
 
 Tambien quedan preparadas columnas de trazabilidad para resultado operativo:
 

@@ -4,6 +4,7 @@ import tempfile
 import json
 from pathlib import Path
 from unittest import TestCase
+from unittest.mock import patch
 
 from siesa_payments.config import MappingConfig, RuntimeConfig
 from siesa_payments.siesa_hub import SiesaHubClient
@@ -185,3 +186,32 @@ class SyncTests(TestCase):
             with self.assertRaises(PermissionError):
                 PaymentSyncService(runtime, self.mapping, second_client).sync()
             self.assertEqual(second_transport.calls, [])
+
+    def test_runtime_accepts_siesa_base_url_alias(self) -> None:
+        env = {
+            "SIESA_BASE_URL": "https://produccion.siesa.example",
+            "SIESA_ID_ECOSISTEMA": "99",
+        }
+
+        with patch.dict("os.environ", env, clear=True):
+            runtime = RuntimeConfig.from_env()
+
+        self.assertEqual(runtime.hub_base_url, "https://produccion.siesa.example")
+        self.assertEqual(runtime.siesa_id_ecosistema, "99")
+
+    def test_connector_url_rejects_unresolved_placeholders(self) -> None:
+        client = SiesaHubClient(
+            base_url=None,
+            connector_url=(
+                "https://{baseUrl}/apisestandar/v3/conectoresimportar"
+                "?idCompania=9534&idEcoSistema={idEcoSistema}&idDocumento=142888"
+            ),
+            connikey="key",
+            connitoken="token",
+            id_compania="9534",
+            id_documento="142888",
+            nombre_documento="API_v1_ReciboCaja",
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "placeholders"):
+            client.connection_summary()

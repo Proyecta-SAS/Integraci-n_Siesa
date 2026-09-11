@@ -366,10 +366,8 @@
       "default": "0"
     },
     "CxC.0.F353_ID_TIPO_DOCTO_CRUCE": {
-      "source": "payment_or_env",
-      "field": "cross_document_type",
-      "name": "SIESA_TIPO_DOCTO_CRUCE",
-      "default": ""
+      "source": "literal",
+      "value": "RC"
     },
     "CxC.0.F353_CONSEC_DOCTO_CRUCE": {
       "source": "payment_or_env",
@@ -400,10 +398,8 @@
       "format": "integer_8"
     },
     "CxC.0.F353_ID_AUXILIAR_DOCTO_CRUCE": {
-      "source": "payment_or_env",
-      "field": "cross_auxiliary",
-      "name": "SIESA_AUXILIAR_DOCTO_CRUCE",
-      "default": ""
+      "source": "literal",
+      "value": "28050505"
     },
     "CxC.0.F353_ID_CO_DOCTO_CRUCE": {
       "source": "payment_or_env",

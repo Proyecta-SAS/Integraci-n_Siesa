@@ -8,6 +8,9 @@ from typing import Any, Protocol
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 
+PLACEHOLDERS = ("{baseUrl}", "{idEcoSistema}", "{idCompania}", "{idDocumento}", "{nombreDocumento}")
+
+
 class Transport(Protocol):
     def request(
         self,
@@ -103,9 +106,14 @@ class SiesaHubClient:
 
     def _url(self) -> str:
         if self.connector_url:
-            return self.connector_url
+            url = self.connector_url
+            if any(placeholder in url for placeholder in PLACEHOLDERS):
+                raise RuntimeError("la URL del conector contiene placeholders sin reemplazar")
+            return url
         if not self.base_url:
             raise RuntimeError("configure SIESA_CONNECTOR_URL o SIESA_HUB_BASE_URL")
+        if any(placeholder in self.base_url for placeholder in PLACEHOLDERS):
+            raise RuntimeError("SIESA_HUB_BASE_URL contiene placeholders sin reemplazar")
         path = self.execute_path
         if not path.startswith("/"):
             path = "/" + path

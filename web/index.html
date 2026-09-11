@@ -82,15 +82,63 @@
           </button>
         </section>
 
-        <section class="result-grid">
-          <article class="result-card">
-            <span>Configuracion</span>
-            <pre id="statusOutput">Cargando estado...</pre>
+        <section class="summary-grid" aria-label="Resumen operativo">
+          <article class="summary-card">
+            <span>Estado</span>
+            <strong id="connectionStatus">Revisando...</strong>
+            <small id="connectionHint">Validando configuracion QA.</small>
           </article>
-          <article class="result-card">
-            <span>Resultado</span>
-            <pre id="resultOutput">Selecciona una accion.</pre>
+          <article class="summary-card">
+            <span>Filas listas</span>
+            <strong id="readyRowsMetric">0</strong>
+            <small id="rowsHint">Sin lectura de Sheets.</small>
           </article>
+          <article class="summary-card">
+            <span>Valor listo</span>
+            <strong id="amountMetric">$0</strong>
+            <small id="amountHint">Total que se enviaria.</small>
+          </article>
+          <article class="summary-card">
+            <span>Envio real</span>
+            <strong id="sendStatusMetric">Bloqueado</strong>
+            <small id="sendHint">Pendiente de autorizacion.</small>
+          </article>
+        </section>
+
+        <section class="operator-panel" aria-live="polite">
+          <div>
+            <span>Resultado de la ultima accion</span>
+            <h3 id="resultTitle">Listo para revisar Sheets</h3>
+            <p id="resultMessage">Primero revisa la hoja para confirmar que las filas tengan cliente, valor, fecha y documento cruce.</p>
+          </div>
+          <ul class="result-list" id="resultList">
+            <li>Sin accion ejecutada.</li>
+          </ul>
+        </section>
+
+        <details class="technical-panel">
+          <summary>Detalle tecnico</summary>
+          <section class="result-grid">
+            <article class="result-card">
+              <span>Configuracion</span>
+              <pre id="statusOutput">Cargando estado...</pre>
+            </article>
+            <article class="result-card">
+              <span>Respuesta tecnica</span>
+              <pre id="resultOutput">Selecciona una accion.</pre>
+            </article>
+          </section>
+        </details>
+
+        <section class="flow-panel" aria-label="Pasos del proceso">
+          <span>Flujo recomendado</span>
+          <ol>
+            <li>Revisar Sheets</li>
+            <li>Preflight</li>
+            <li>Probar QA</li>
+            <li>Enviar QA</li>
+            <li>Validar recibo en Siesa</li>
+          </ol>
         </section>
 
         <section class="table-card">

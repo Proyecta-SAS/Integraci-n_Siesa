@@ -28,13 +28,11 @@ REQUIRED_SEND_ENV = (
     "SIESA_ID_COBRADOR",
 )
 CROSS_FIELD_ENV = (
-    ("cross_document_type", "SIESA_TIPO_DOCTO_CRUCE"),
     ("cross_document_number", "SIESA_CONSEC_DOCTO_CRUCE"),
     ("cross_installment", "SIESA_NRO_CUOTA_CRUCE"),
     ("cross_co", "SIESA_ID_CO_CRUCE"),
     ("cross_un", "SIESA_ID_UN_CRUCE"),
     ("cross_branch", "SIESA_SUCURSAL_DOCTO_CRUCE"),
-    ("cross_auxiliary", "SIESA_AUXILIAR_DOCTO_CRUCE"),
 )
 
 
@@ -123,6 +121,14 @@ def _cross_status(payment: Any) -> tuple[bool, str]:
     return True, "mixed"
 
 
+def _siesa_cross_document(payment: Any) -> str:
+    number = payment.cross_document_number
+    installment = payment.cross_installment
+    if not number:
+        return payment.cross_document
+    return "-".join(part for part in ["RC", number, installment] if part)
+
+
 def inspect_rows(limit: int = 25) -> dict[str, Any]:
     runtime = _runtime_for_request(dry_run=True)
     mapping = MappingConfig.load(runtime.mapping_file)
@@ -146,16 +152,9 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
                 "source_row": payment.source_row,
                 "flow": flow.key,
                 "identity_number": payment.identity_number,
-                "cross_document": payment.cross_document
-                or "-".join(
-                    part
-                    for part in [
-                        payment.cross_document_type,
-                        payment.cross_document_number,
-                        payment.cross_installment,
-                    ]
-                    if part
-                ),
+                "cross_document": _siesa_cross_document(payment),
+                "sheet_cross_document": payment.cross_document,
+                "cross_auxiliary": "28050505",
                 "cross_ready": cross_ready,
                 "cross_source": cross_source,
                 "customer": " ".join(part for part in [payment.first_name, payment.last_name] if part).strip()
