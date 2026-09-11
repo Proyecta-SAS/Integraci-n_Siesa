@@ -69,10 +69,16 @@ def _runtime_for_request(dry_run: bool) -> RuntimeConfig:
 
 def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
     missing_send_env = [name for name in REQUIRED_SEND_ENV if not os.getenv(name)]
-    missing_cross_env = [env_name for _field_name, env_name in CROSS_FIELD_ENV if not os.getenv(env_name)]
+    application_mode = _receipt_application_mode()
+    missing_cross_env = (
+        []
+        if _uses_other_income_mode()
+        else [env_name for _field_name, env_name in CROSS_FIELD_ENV if not os.getenv(env_name)]
+    )
     cooldown = PaymentSyncService(runtime, MappingConfig.load(runtime.mapping_file)).send_cooldown_status()
     return {
         "environment": runtime.environment,
+        "application_mode": application_mode,
         "dry_run": runtime.dry_run,
         "allow_send": runtime.allow_send,
         "send_cooldown_minutes": runtime.send_cooldown_minutes,
@@ -106,7 +112,24 @@ def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
     }
 
 
+def _receipt_application_mode() -> str:
+    value = os.getenv("SIESA_RECIBO_FLUJO") or os.getenv("SIESA_RECEIPT_MODE") or "cartera"
+    return value.strip().lower().replace(" ", "_")
+
+
+def _uses_other_income_mode() -> bool:
+    return _receipt_application_mode() in {
+        "otros_ingresos",
+        "otro_ingreso",
+        "anticipo",
+        "anticipo_por_identificar",
+    }
+
+
 def _cross_status(payment: Any) -> tuple[bool, str]:
+    if _uses_other_income_mode():
+        return True, "otros_ingresos"
+
     sheet_count = 0
     env_count = 0
     for field_name, env_name in CROSS_FIELD_ENV:
@@ -124,6 +147,10 @@ def _cross_status(payment: Any) -> tuple[bool, str]:
 
 
 def _siesa_cross_document(payment: Any) -> str:
+    if _uses_other_income_mode():
+        auxiliary = os.getenv("SIESA_AUXILIAR_OTRO_ING", "28050505")
+        return f"Otro ingreso {auxiliary}"
+
     document_type = payment.cross_document_type
     number = payment.cross_document_number
     installment = payment.cross_installment
@@ -133,6 +160,9 @@ def _siesa_cross_document(payment: Any) -> str:
 
 
 def _siesa_cross_auxiliary(payment: Any) -> str:
+    if _uses_other_income_mode():
+        return os.getenv("SIESA_AUXILIAR_OTRO_ING", "28050505")
+
     return payment.cross_auxiliary or os.getenv("SIESA_AUXILIAR_DOCTO_CRUCE", "")
 
 
@@ -144,6 +174,7 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
     for payment in iter_payments(runtime.input_csv, runtime.sheets_csv_url, mapping):
         issues = validator.validate(payment)
         flow = decide_flow(payment)
+        flow_key = "otros_ingresos_28050505" if _uses_other_income_mode() else flow.key
         cross_ready, cross_source = _cross_status(payment)
         row_issues = [asdict(issue) for issue in issues]
         if not cross_ready:
@@ -151,13 +182,13 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
                 {
                     "row": payment.source_row,
                     "field": "cross_document",
-                    "message": "faltan datos del documento cruce",
+                    "message": "faltan datos del documento aplicado",
                 }
             )
         rows.append(
             {
                 "source_row": payment.source_row,
-                "flow": flow.key,
+                "flow": flow_key,
                 "identity_number": payment.identity_number,
                 "cross_document": _siesa_cross_document(payment),
                 "sheet_cross_document": payment.cross_document,

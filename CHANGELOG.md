@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0 - 2026-09-11
+
+- Cambia el flujo principal a `SIESA_RECIBO_FLUJO=otros_ingresos`.
+- El payload deja de enviar `CxC` en ese modo, por lo que no cruza `FVE`.
+- Completa otros ingresos con auxiliar `28050505` (`ANTICIPO POR IDENTIFICAR`).
+- Ajusta la visual para mostrar `Otros ingresos 28050505` en vez de presentar `FVE` como cruce principal.
+- Mantiene el modo `cartera` como compatibilidad si se requiere aplicar facturas despues.
+
 ## 0.13.0 - 2026-09-11
 
 - Aclara el cruce operativo despues de la prueba QA: `RC` es el tipo del recibo creado, no del documento aplicado.

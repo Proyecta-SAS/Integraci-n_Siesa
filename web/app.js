@@ -22,6 +22,10 @@ const sendHint = document.querySelector("#sendHint");
 const resultTitle = document.querySelector("#resultTitle");
 const resultMessage = document.querySelector("#resultMessage");
 const resultList = document.querySelector("#resultList");
+const envPill = document.querySelector("#envPill");
+const crossHeader = document.querySelector("#crossHeader");
+
+let currentApplicationMode = "cartera";
 
 const moneyFormatter = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -56,6 +60,10 @@ function formatCooldown(seconds) {
   }
   const minutes = Math.ceil(seconds / 60);
   return `Espere ${minutes} min`;
+}
+
+function isOtherIncomeMode(mode = currentApplicationMode) {
+  return ["otros_ingresos", "otro_ingreso", "anticipo", "anticipo_por_identificar"].includes(mode);
 }
 
 function escapeHtml(value) {
@@ -127,17 +135,27 @@ async function latestFailureItems() {
 function updateStatusSummary(runtime) {
   const missingCount = (runtime.missing_send_env || []).length;
   const cooldown = runtime.cooldown || {};
+  currentApplicationMode = runtime.application_mode || "cartera";
+  const otherIncome = isOtherIncomeMode();
+  envPill.textContent = otherIncome
+    ? `${String(runtime.environment || "QA").toUpperCase()} · 28050505`
+    : String(runtime.environment || "QA").toUpperCase();
+  crossHeader.textContent = otherIncome ? "Otros ingresos" : "Cruce";
 
   connectionStatus.textContent = runtime.ready_to_send ? "Configurado" : "Incompleto";
   connectionStatus.dataset.tone = runtime.ready_to_send ? "ok" : "warn";
   connectionHint.textContent = runtime.ready_to_send
-    ? "QA tiene URL, credenciales y datos base."
+    ? otherIncome
+      ? "QA tiene datos base. Flujo: otros ingresos 28050505."
+      : "QA tiene URL, credenciales y datos base."
     : `Faltan ${missingCount} dato(s) para enviar.`;
 
   if (runtime.send_unlocked && !cooldown.cooldown_active) {
     sendStatusMetric.textContent = "Permitido";
     sendStatusMetric.dataset.tone = "warn";
-    sendHint.textContent = "Enviar QA creara recibos reales en pruebas.";
+    sendHint.textContent = otherIncome
+      ? "Enviar QA creara recibos por otros ingresos."
+      : "Enviar QA creara recibos reales en pruebas.";
     return;
   }
 
@@ -276,6 +294,7 @@ async function loadStatus() {
   const data = await api("/api/status");
   writeJson(statusOutput, data.runtime);
   updateStatusSummary(data.runtime);
+  const otherIncome = isOtherIncomeMode(data.runtime.application_mode);
   if (!data.runtime.connector_url_configured) {
     const message = "Pendiente: copia la Request URL del conector en SIESA_CONNECTOR_URL. El path generico respondio 405 en QA.";
     resultOutput.textContent = message;
@@ -290,6 +309,8 @@ async function loadStatus() {
   }
   if (!data.runtime.cross_fallback_configured) {
     resultOutput.textContent = "Cruce dinamico activo: cada fila debe traer Documento cruce o columnas separadas de CxC.";
+  } else if (isOtherIncomeMode(data.runtime.application_mode)) {
+    resultOutput.textContent = "Modo otros ingresos activo: no cruza FVE; envia auxiliar 28050505.";
   }
   const cooldownActive = data.runtime.cooldown?.cooldown_active;
   if (!data.runtime.send_unlocked || cooldownActive) {
@@ -301,7 +322,9 @@ async function loadStatus() {
   } else {
     sendButton.disabled = false;
     sendButton.classList.remove("locked");
-    sendButton.querySelector("small").textContent = "Crea recibo en Siesa";
+    sendButton.querySelector("small").textContent = otherIncome
+      ? "Crea recibo por otros ingresos"
+      : "Crea recibo en Siesa";
   }
 }
 
@@ -318,7 +341,9 @@ function renderRows(rows) {
         ? row.issues.map((issue) => `${issue.field}: ${issue.message}`).join(" | ")
         : row.cross_ready
           ? "Lista para enviar"
-          : "Falta documento cruce";
+          : isOtherIncomeMode()
+            ? "Faltan datos de otros ingresos"
+            : "Falta documento cruce";
       const status = row.valid && row.cross_ready ? "Lista" : "Revisar";
       const statusClass = row.valid && row.cross_ready ? "state-ok" : "state-warn";
       return `
@@ -383,7 +408,9 @@ async function preflight() {
         `Filas revisadas: ${preflight.rows_checked}`,
         `Filas listas: ${preflight.ready_rows}`,
         `Filas invalidas: ${preflight.invalid_rows.length}`,
-        `Sin documento cruce: ${preflight.missing_cross_rows.length}`,
+        isOtherIncomeMode()
+          ? "Cruce de cartera: no aplica"
+          : `Sin documento cruce: ${preflight.missing_cross_rows.length}`,
       ],
       preflight.ready ? "ok" : "warn",
     );
@@ -434,7 +461,7 @@ async function sendQa() {
     }
     const rowsData = await api("/api/payments?limit=50");
     const missingCrossRows = rowsData.rows.filter((row) => !row.cross_ready).map((row) => row.source_row);
-    if (missingCrossRows.length) {
+    if (missingCrossRows.length && !isOtherIncomeMode(status.runtime.application_mode)) {
       const error = {
         ok: false,
         error: "Faltan datos de documento cruce en Sheets o variables SIESA_* de respaldo.",

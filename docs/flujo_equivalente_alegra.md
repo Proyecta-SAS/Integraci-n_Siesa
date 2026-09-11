@@ -2,17 +2,17 @@
 
 ## Objetivo
 
-Cuando una fila nueva llegue a Google Sheets, el proceso debe tomarla, validarla, crear el recibo de caja de cliente en Siesa y dejar trazabilidad para no procesarla dos veces.
+Cuando una fila nueva llegue a Google Sheets, el proceso debe tomarla, validarla, crear el recibo de caja en Siesa como otros ingresos y dejar trazabilidad para no procesarla dos veces.
 
 ## Modulo Siesa confirmado
 
 La captura de Siesa Cloud SBS para `ALIANZA JURIDICA AVANZAR SAS` confirma el modulo operativo destino:
 
 ```text
-Financiero > Cuentas x cobrar > Recibos de caja > Clientes
+Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos
 ```
 
-Esto alinea el desarrollo con el conector `142888 - API_v1_ReciboCaja`. En este flujo, la fila de Sheets no debe crear una factura de venta; debe registrar el pago del cliente como recibo de caja en cuentas por cobrar.
+Esto alinea el desarrollo con el conector `142888 - API_v1_ReciboCaja`. En este flujo, la fila de Sheets no debe crear una factura de venta ni cruzar `FVE`; debe registrar el ingreso en el recibo tipo `RC` con auxiliar `28050505`.
 
 ## Componentes necesarios
 
@@ -24,7 +24,7 @@ Esto alinea el desarrollo con el conector `142888 - API_v1_ReciboCaja`. En este 
 | Python `siesa_payments` | Si | Lee, valida, mapea y envia a Siesa HUB. |
 | Credenciales Siesa HUB | Si | Token, host QA/prod y path real del conector. |
 | Contrato del conector | Si | Define el JSON final que acepta Siesa. |
-| Catalogos Siesa | Si | Tipo documento, caja, moneda, concepto flujo efectivo, medio pago y centro de costo. |
+| Catalogos Siesa | Si | Tipo documento, caja, moneda, concepto flujo efectivo, medio pago, centro de costo y auxiliar `28050505`. |
 | IA de Alegra | Solo si aplica | Si hoy esa IA limpia/extrrae datos antes de escribir en Sheets, se mantiene como paso previo. No deberia ser necesaria para enviar a Siesa si la hoja ya queda normalizada. |
 
 ## Secuencia operativa
@@ -43,9 +43,9 @@ Esto alinea el desarrollo con el conector `142888 - API_v1_ReciboCaja`. En este 
 8. Se guarda auditoria en `logs/siesa_payments.jsonl`.
 9. Se guarda estado en `.state/siesa_payments_state.json` para evitar duplicados.
 
-## Punto pendiente critico
+## Flujo activo
 
-Falta abrir `Clientes` en Siesa y capturar los campos obligatorios de la pantalla o el contrato JSON del HUB. Con eso se ajusta `config/siesa_recibo_caja_mapping.json` para que el payload replique exactamente la captura manual.
+El modo activo debe quedar en `SIESA_RECIBO_FLUJO=otros_ingresos`. El modo `cartera` queda solo como compatibilidad tecnica si mas adelante Avanzar decide aplicar saldos abiertos contra documentos `FVE`.
 
 ## Comandos
 

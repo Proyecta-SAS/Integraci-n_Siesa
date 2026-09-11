@@ -16,7 +16,7 @@ Objetivo: crear un recibo de caja real en Siesa produccion con una fila controla
    - U.N.
    - Flujo efectivo.
    - Medio de pago.
-   - Documento cruce de cartera.
+   - Auxiliar de otros ingresos `28050505`.
 6. Mantener `SIESA_ALLOW_SEND=false` mientras se valida configuracion y payload.
 
 ## Variables productivas esperadas
@@ -41,18 +41,11 @@ SIESA_ID_COBRADOR=<cobrador productivo>
 SIESA_ID_UN=<unidad negocio>
 SIESA_ID_FE=<flujo efectivo>
 SIESA_SHEETS_CSV_URL=<export CSV hoja productiva>
+SIESA_RECIBO_FLUJO=otros_ingresos
+SIESA_AUXILIAR_OTRO_ING=28050505
 ```
 
-Los datos del documento aplicado deben venir por fila en Sheets:
-
-```text
-Documento cruce
-C.O. cruce
-U.N. cruce
-Sucursal cruce
-```
-
-Segun la validacion manual, `RC` corresponde al tipo de documento del recibo de caja creado. El documento aplicado/cruce conserva el tipo real del saldo abierto, por ejemplo `FVE-00000006-00`, y el auxiliar aplicado validado fue `13050501`.
+Segun la validacion de contabilidad, el recibo debe crearse con tipo `RC` y como otros ingresos usando el auxiliar `28050505`. En este flujo no se debe cruzar cartera `FVE`.
 
 La hoja tambien tiene estas columnas de trazabilidad listas para uso operativo:
 
@@ -70,16 +63,16 @@ Nota tecnica: Railway lee la hoja por export CSV. Para actualizar esas columnas 
 
 1. Abrir la app de Railway.
 2. Presionar `Revisar Sheets`.
-3. Confirmar que la fila de prueba sale como `Lista`, con `cross_source=sheet`.
+3. Confirmar que la fila de prueba sale como `Lista`, con aplicacion `Otro ingreso 28050505`.
 4. Presionar `Preflight`.
 5. Confirmar:
    - `ready=true`
    - `send_unlocked=false`
    - `invalid_rows=[]`
-   - `missing_cross_rows=[]`
+   - `missing_cross_rows=[]` o cruce de cartera no aplica.
    - `ready_rows=1`
 6. Presionar `Probar QA` o endpoint dry-run equivalente ya apuntando a produccion con `SIESA_DRY_RUN=true`.
-7. Revisar el payload en logs y confirmar tercero, fecha, valor, caja, medio de pago y documento cruce.
+7. Revisar el payload en logs y confirmar tercero, fecha, valor, caja, medio de pago y auxiliar `28050505`.
 8. Solo durante la ventana autorizada, cambiar `SIESA_ALLOW_SEND=true`.
 9. Presionar `Enviar QA` una sola vez, aunque el ambiente sea productivo hasta renombrar el boton.
 10. Volver a dejar `SIESA_ALLOW_SEND=false`.
@@ -87,22 +80,20 @@ Nota tecnica: Railway lee la hoja por export CSV. Para actualizar esas columnas 
     - Recibo de caja creado.
     - Tercero correcto.
     - Valor correcto.
-    - Documento aplicado correcto.
+    - Auxiliar de otros ingresos correcto.
     - Movimiento de caja correcto.
 
 Despues de un envio real, el sistema bloquea otro envio durante 15 minutos. El bloqueo queda registrado en el estado local de la app y se ve en `/api/status` como `cooldown.cooldown_active=true`.
 
 ## Criterio de exito
 
-La prueba queda aprobada si Siesa responde transaccion exitosa, el recibo aparece en `Financiero > Cuentas x cobrar > Recibos de caja > Clientes`, el movimiento de caja refleja el valor correcto y la app conserva trazabilidad del intento.
+La prueba queda aprobada si Siesa responde transaccion exitosa, el recibo aparece en `Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos`, el movimiento de caja refleja el valor correcto y la app conserva trazabilidad del intento.
 
 ## Criterios de bloqueo
 
 - La Request URL sigue apuntando a QA.
 - La Request URL conserva `{baseUrl}` o `{idEcoSistema}` sin reemplazar.
 - Faltan headers productivos.
-- La fila no trae documento cruce.
-- El documento cruce no tiene saldo disponible.
-- El valor a aplicar supera el saldo del documento.
+- El auxiliar `28050505` no existe o no esta habilitado en productivo.
 - El envio anterior fue hace menos de 15 minutos.
 - Contabilidad no confirma caja, cobrador, U.N. o flujo efectivo productivo.

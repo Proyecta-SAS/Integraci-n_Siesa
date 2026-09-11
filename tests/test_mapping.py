@@ -92,3 +92,28 @@ class MappingTests(TestCase):
         self.assertEqual(payload["CxC"][0]["F353_ID_UN_DOCTO_CRUCE"], "03")
         self.assertEqual(payload["CxC"][0]["F353_ID_SUCURSAL_DOCTO_CRUCE"], "001")
         self.assertEqual(payload["CxC"][0]["F353_ID_AUXILIAR_DOCTO_CRUCE"], "13050501")
+
+    def test_other_income_mode_uses_28050505_without_cxc_application(self) -> None:
+        csv_text = (
+            "Cuenta bancaria,Fecha,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,"
+            "Tipo de identificacion, Numero de identificacion *,Nombre *\n"
+            "CAJA GENERAL,30/06/2026,Ingreso,Transferencia,130505 CLIENTES,1,1000,"
+            "CC - Cedula de ciudadania,1000033853,Juan\n"
+        )
+        env = {
+            "SIESA_RECIBO_FLUJO": "otros_ingresos",
+            "SIESA_ID_CO": "001",
+            "SIESA_ID_UN": "99",
+        }
+
+        payment = read_csv_text(csv_text, self.mapping)[0]
+        with patch.dict("os.environ", env, clear=False):
+            payload = build_payload(payment, self.mapping)
+
+        self.assertNotIn("CxC", payload)
+        receipt = payload["RCyotrosingresos"][0]
+        self.assertEqual(receipt["F350_ID_TIPO_DOCTO"], "RC")
+        self.assertEqual(receipt["F351_ID_AUXILIAR_OTRO_ING"], "28050505")
+        self.assertEqual(receipt["F351_ID_TERCERO_OTRO_ING"], "1000033853")
+        self.assertEqual(receipt["F351_ID_CO_OTRO_ING"], "001")
+        self.assertEqual(receipt["F351_ID_UN_OTRO_ING"], "99")

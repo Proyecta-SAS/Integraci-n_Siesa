@@ -1,6 +1,6 @@
 # Integracion Siesa - Recibos de Caja
 
-Servicio para registrar automaticamente en Siesa HUB los pagos de clientes que llegan a una hoja operativa de Avanzar. El destino operativo confirmado es `Financiero > Cuentas x cobrar > Recibos de caja > Clientes`.
+Servicio para registrar automaticamente en Siesa HUB los pagos de clientes que llegan a una hoja operativa de Avanzar. El destino operativo confirmado para este flujo es `Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos`.
 
 ## Hoja operativa compartida
 
@@ -21,15 +21,15 @@ Nombre, Apellido, Tipo de persona, Responsabilidad tributaria,
 Municipio / Departamento, Direccion
 ```
 
-Para produccion el cruce de cartera debe venir por fila. El sistema soporta agregar columnas al final de la hoja sin romper la estructura actual:
+El flujo principal queda parametrizado como `SIESA_RECIBO_FLUJO=otros_ingresos`: crea recibos tipo `RC`, no aplica cartera `FVE` y registra el ingreso en el auxiliar `28050505` (`ANTICIPO POR IDENTIFICAR`).
+
+El sistema conserva soporte opcional para cruce de cartera si se cambia `SIESA_RECIBO_FLUJO=cartera`. En ese caso se pueden agregar columnas al final de la hoja sin romper la estructura actual:
 
 ```text
 Documento cruce, C.O. cruce, U.N. cruce, Sucursal cruce, Auxiliar cruce
 ```
 
-`Documento cruce` puede venir completo como `FVE-00000006-00`. El sistema toma tipo, consecutivo y cuota de esa celda para aplicar el saldo abierto. El recibo de caja que se crea en Siesa usa tipo `RC`.
-
-El auxiliar aplicado en Siesa debe venir por fila. En el caso validado manualmente se uso `13050501`.
+`Documento cruce` puede venir completo como `FVE-00000006-00` solo en modo cartera. El sistema toma tipo, consecutivo y cuota de esa celda para aplicar el saldo abierto. Ese no es el modo recomendado para la prueba actual.
 
 Tambien quedan preparadas columnas de trazabilidad para resultado operativo:
 
@@ -82,6 +82,8 @@ Variables principales:
 - `SIESA_DRY_RUN`: `true` para validar y generar payloads sin enviar.
 - `SIESA_ALLOW_SEND`: `true` habilita envio real. Debe quedar `false` salvo durante una ventana controlada.
 - `SIESA_SEND_COOLDOWN_MINUTES`: minutos de bloqueo entre activaciones reales; por defecto `15`.
+- `SIESA_RECIBO_FLUJO`: `otros_ingresos` para el flujo actual validado con contabilidad; `cartera` solo si se requiere aplicar documentos `FVE`.
+- `SIESA_AUXILIAR_OTRO_ING`: auxiliar de otros ingresos; para Avanzar queda `28050505`.
 
 ## Uso
 
@@ -123,7 +125,7 @@ Para la reunion de paso a produccion use `docs/prueba_produccion_reunion.md`.
 La primera visual local esta en `web/index.html`. Se puede abrir directamente en el navegador y representa el flujo:
 
 ```text
-Sheets -> Validacion -> Siesa HUB -> Recibos de caja / Clientes -> Trazabilidad
+Sheets -> Validacion -> Siesa HUB -> Recibos de caja / Otros ingresos -> Trazabilidad
 ```
 
 Para Railway el repositorio incluye `Procfile`:

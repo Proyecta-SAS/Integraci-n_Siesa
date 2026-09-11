@@ -38,7 +38,7 @@ def decide_flow(payment: PaymentRow) -> FlowDecision:
         return FlowDecision(
             key=EXISTING_CONTACT_RECEIPT,
             creates_customer=False,
-            siesa_target="Financiero > Cuentas x cobrar > Recibos de caja > Clientes",
+            siesa_target="Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos",
         )
 
     if _is_client_provider(payment):

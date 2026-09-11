@@ -3,7 +3,7 @@
 Modulo destino confirmado:
 
 ```text
-Financiero > Cuentas x cobrar > Recibos de caja > Clientes
+Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos
 ```
 
 ## Entrada confirmada en Google Sheets
@@ -40,14 +40,14 @@ Aunque el archivo conserva nombre de Alegra, en esta integracion se usa como ban
 | Responsabilidad tributaria | `tax_responsibility` | Regimen/responsabilidad tributaria. |
 | Municipio / Departamento | `municipality_department` | Ubicacion del tercero, si aplica. |
 | Direccion | `address` | Direccion del tercero, si aplica. |
-| Documento cruce | `cross_document` | Documento completo usado como fuente de tipo, consecutivo y cuota, por ejemplo `FVE-00000006-00`. |
+| Documento cruce | `cross_document` | Solo aplica si `SIESA_RECIBO_FLUJO=cartera`. En el flujo principal de otros ingresos no se usa para enviar. |
 | Tipo docto cruce | `cross_document_type` | Tipo del documento aplicado. Si `Documento cruce` viene completo, se toma de ahi. |
 | Consecutivo cruce | `cross_document_number` | Consecutivo del documento de cartera, por ejemplo `00000006`. |
 | Cuota cruce | `cross_installment` | Cuota del documento, por ejemplo `00`. |
 | C.O. cruce | `cross_co` | Centro de operacion del documento aplicado. |
 | U.N. cruce | `cross_un` | Unidad de negocio del documento aplicado. |
 | Sucursal cruce | `cross_branch` | Sucursal del documento aplicado. |
-| Auxiliar cruce | `cross_auxiliary` | Auxiliar del documento aplicado. En la prueba manual exitosa fue `13050501`. |
+| Auxiliar cruce | `cross_auxiliary` | Solo aplica en modo cartera. En otros ingresos se usa `SIESA_AUXILIAR_OTRO_ING=28050505`. |
 
 ## Validaciones detectadas en la hoja
 
@@ -92,11 +92,10 @@ La parametrizacion de recibos de caja de Siesa indica que varios valores son obl
 {
   "Inicial": [{ "F_CIA": "..." }],
   "Caja": [{ "...": "..." }],
-  "RCyotrosingresos": [{ "...": "..." }],
-  "CxC": [{ "...": "..." }]
+  "RCyotrosingresos": [{ "...": "..." }]
 }
 ```
 
-Los campos obligatorios del Body dependen de la parametrizacion de Siesa, especialmente centro de operacion, tipo de documento, caja, moneda, cobrador y documento de CxC a cruzar. Esos valores quedan en variables `SIESA_*` para no amarrar el codigo a una compania o ambiente.
+Los campos obligatorios del Body dependen de la parametrizacion de Siesa, especialmente centro de operacion, tipo de documento, caja, moneda, cobrador y datos de otros ingresos. Esos valores quedan en variables `SIESA_*` para no amarrar el codigo a una compania o ambiente.
 
-La seccion `CxC` exige datos del documento/factura que recibe el pago: tipo de documento cruce, consecutivo, auxiliar, centro de operacion, unidad de negocio, sucursal y cuota. El mapeo toma primero los valores de cada fila de Sheets y, si vienen vacios, usa las variables `SIESA_*` como respaldo para pruebas QA controladas.
+En el flujo `otros_ingresos`, el payload elimina la seccion `CxC` y completa `F351_ID_AUXILIAR_OTRO_ING=28050505`. La seccion `CxC` queda disponible solo para el modo legado `cartera`.

@@ -47,3 +47,24 @@ class WebServerAuditTests(TestCase):
         self.assertEqual(events[0]["siesa_status_code"], 400)
         self.assertEqual(events[0]["siesa_response"]["mensaje"], "Documento cruce no existe")
         self.assertNotIn("payload", events[0])
+
+    def test_other_income_mode_does_not_require_cxc_cross(self) -> None:
+        class Payment:
+            cross_document_type = ""
+            cross_document_number = ""
+            cross_installment = ""
+            cross_co = ""
+            cross_un = ""
+            cross_branch = ""
+            cross_auxiliary = ""
+            cross_document = "FVE-00000006-00"
+
+        with patch.dict("os.environ", {"SIESA_RECIBO_FLUJO": "otros_ingresos"}, clear=True):
+            cross_ready, cross_source = web_server._cross_status(Payment())
+            cross_document = web_server._siesa_cross_document(Payment())
+            cross_auxiliary = web_server._siesa_cross_auxiliary(Payment())
+
+        self.assertTrue(cross_ready)
+        self.assertEqual(cross_source, "otros_ingresos")
+        self.assertEqual(cross_document, "Otro ingreso 28050505")
+        self.assertEqual(cross_auxiliary, "28050505")

@@ -76,6 +76,30 @@ def _apply_format(value: Any, rule: dict[str, Any]) -> Any:
         return str(value)[: int(value_format.removeprefix("max_"))]
     return value
 
+
+def _receipt_application_mode() -> str:
+    value = os.getenv("SIESA_RECIBO_FLUJO") or os.getenv("SIESA_RECEIPT_MODE") or "cartera"
+    return normalize_header(value).replace(" ", "_")
+
+
+def _apply_other_income_mode(payload: dict[str, Any], payment: PaymentRow) -> None:
+    if _receipt_application_mode() not in {"otros_ingresos", "otro_ingreso", "anticipo", "anticipo_por_identificar"}:
+        return
+
+    payload.pop("CxC", None)
+    receipt_lines = payload.get("RCyotrosingresos") or []
+    if not receipt_lines:
+        return
+
+    receipt = receipt_lines[0]
+    receipt["F351_ID_AUXILIAR_OTRO_ING"] = os.getenv("SIESA_AUXILIAR_OTRO_ING", "28050505")
+    receipt["F351_ID_TERCERO_OTRO_ING"] = payment.identity_number
+    receipt["F351_ID_SUCURSAL_OTRO_ING"] = os.getenv("SIESA_SUCURSAL_OTRO_ING", "001")
+    receipt["F351_ID_CO_OTRO_ING"] = os.getenv("SIESA_ID_CO_OTRO_ING") or os.getenv("SIESA_ID_CO", "")
+    receipt["F351_ID_UN_OTRO_ING"] = os.getenv("SIESA_ID_UN_OTRO_ING") or os.getenv("SIESA_ID_UN", "")
+    receipt["F351_ID_CCOSTO_OTRO_ING"] = payment.cost_center or os.getenv("SIESA_CCOSTO_OTRO_ING", "")
+
+
 def build_payload(payment: PaymentRow, mapping: MappingConfig) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     for target_path, rule in mapping.payload_template.items():
@@ -112,4 +136,5 @@ def build_payload(payment: PaymentRow, mapping: MappingConfig) -> dict[str, Any]
             raise MappingError(f"source de mapping no soportado: {source!r}")
         value = _apply_format(value, rule)
         _set_dotted(payload, target_path, _apply_value_map(value, rule, mapping))
+    _apply_other_income_mode(payload, payment)
     return payload

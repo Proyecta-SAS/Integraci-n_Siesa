@@ -54,4 +54,4 @@ Prueba enviada contra Apigee QA leyendo la fila real de `Ingreso / Egreso` en Go
 
 Siesa documenta dos accesos del Gestor de Integraciones: QA para pruebas y CORE para produccion. El paso productivo es viable cuando Siesa/Avanzar entregue la Request URL de CORE/produccion del conector `142888 - API_v1_ReciboCaja`, headers productivos `Connikey`/`Connitoken` y confirme que el documento `RC`, caja, cobrador, unidad de negocio, flujo efectivo y medio de pago existen igual en productivo.
 
-No se debe reutilizar el endpoint ni token QA en produccion. Antes del primer envio real se debe ejecutar un dry-run con filas productivas, validar que cada fila traiga documento cruce desde Sheets y activar deduplicacion con estado persistente.
+No se debe reutilizar el endpoint ni token QA en produccion. Antes del primer envio real se debe ejecutar un dry-run con filas productivas, confirmar `SIESA_RECIBO_FLUJO=otros_ingresos`, validar que el payload use auxiliar `28050505` y activar deduplicacion con estado persistente.
