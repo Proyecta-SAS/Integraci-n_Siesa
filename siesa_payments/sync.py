@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .config import MappingConfig, RuntimeConfig
@@ -22,6 +22,13 @@ class SyncResult:
     skipped_duplicates: int = 0
     invalid: int = 0
     failed: int = 0
+
+
+class SendCooldownError(PermissionError):
+    def __init__(self, retry_after_seconds: int) -> None:
+        self.retry_after_seconds = retry_after_seconds
+        minutes = max(1, (retry_after_seconds + 59) // 60)
+        super().__init__(f"envio bloqueado por cooldown: espere {minutes} minutos")
 
 
 def _now() -> str:
@@ -86,10 +93,51 @@ class PaymentSyncService:
             execute_path=self.runtime.hub_execute_path,
         )
 
+    def _last_activation_at(self) -> datetime | None:
+        value = self.state.get("last_activation_at")
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(str(value))
+        except ValueError:
+            return None
+
+    def send_cooldown_status(self) -> dict[str, Any]:
+        last_activation_at = self._last_activation_at()
+        cooldown = timedelta(minutes=max(0, self.runtime.send_cooldown_minutes))
+        if last_activation_at is None or cooldown.total_seconds() <= 0:
+            return {
+                "cooldown_minutes": self.runtime.send_cooldown_minutes,
+                "last_activation_at": None,
+                "next_activation_at": None,
+                "cooldown_active": False,
+                "retry_after_seconds": 0,
+            }
+
+        next_activation_at = last_activation_at + cooldown
+        now = datetime.now(timezone.utc)
+        retry_after_seconds = max(0, int((next_activation_at - now).total_seconds()))
+        return {
+            "cooldown_minutes": self.runtime.send_cooldown_minutes,
+            "last_activation_at": last_activation_at.isoformat(),
+            "next_activation_at": next_activation_at.isoformat(),
+            "cooldown_active": retry_after_seconds > 0,
+            "retry_after_seconds": retry_after_seconds,
+        }
+
+    def _reserve_send_window(self) -> None:
+        status = self.send_cooldown_status()
+        if status["cooldown_active"]:
+            raise SendCooldownError(int(status["retry_after_seconds"]))
+        self.state.set("last_activation_at", _now())
+        self.state.save()
+
     def sync(self, dry_run: bool | None = None) -> SyncResult:
         is_dry_run = self.runtime.dry_run if dry_run is None else dry_run
         if not is_dry_run and not self.runtime.allow_send:
             raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
+        if not is_dry_run:
+            self._reserve_send_window()
         counters = {
             "processed": 0,
             "sent": 0,

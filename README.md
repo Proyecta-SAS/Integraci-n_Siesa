@@ -29,6 +29,14 @@ Documento cruce, C.O. cruce, U.N. cruce, Sucursal cruce, Auxiliar cruce
 
 `Documento cruce` puede venir completo como `FVE-00000006-00`. Tambien se soportan columnas separadas: `Tipo docto cruce`, `Consecutivo cruce` y `Cuota cruce`.
 
+Tambien quedan preparadas columnas de trazabilidad para resultado operativo:
+
+```text
+Estado Siesa, Recibo Siesa, Fecha envio, Respuesta Siesa, Error Siesa
+```
+
+La app desplegada actualmente lee la hoja por export CSV. Para escribir automaticamente esos resultados de vuelta al Sheet se debe conectar una credencial de escritura, por ejemplo service account de Google Sheets o un webhook de Apps Script.
+
 La pestana `ID` funciona como catalogo de seleccion de la hoja. Para Siesa se deja el mapeo final en `config/siesa_recibo_caja_mapping.json` porque los codigos contables/documentales del conector 142888 dependen de la parametrizacion del ERP.
 
 ## Flujo
@@ -71,6 +79,7 @@ Variables principales:
 - `SIESA_SHEETS_CSV_URL`: URL de exportacion CSV de Google Sheets.
 - `SIESA_DRY_RUN`: `true` para validar y generar payloads sin enviar.
 - `SIESA_ALLOW_SEND`: `true` habilita envio real. Debe quedar `false` salvo durante una ventana controlada.
+- `SIESA_SEND_COOLDOWN_MINUTES`: minutos de bloqueo entre activaciones reales; por defecto `15`.
 
 ## Uso
 

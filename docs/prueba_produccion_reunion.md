@@ -25,6 +25,7 @@ Objetivo: crear un recibo de caja real en Siesa produccion con una fila controla
 SIESA_ENV=prod
 SIESA_DRY_RUN=true
 SIESA_ALLOW_SEND=false
+SIESA_SEND_COOLDOWN_MINUTES=15
 SIESA_CONNECTOR_URL=<Request URL CORE del conector 142888>
 SIESA_CONN_KEY=<Connikey CORE>
 SIESA_CONN_TOKEN=<Connitoken CORE>
@@ -48,6 +49,18 @@ U.N. cruce
 Sucursal cruce
 Auxiliar cruce
 ```
+
+La hoja tambien tiene estas columnas de trazabilidad listas para uso operativo:
+
+```text
+Estado Siesa
+Recibo Siesa
+Fecha envio
+Respuesta Siesa
+Error Siesa
+```
+
+Nota tecnica: Railway lee la hoja por export CSV. Para actualizar esas columnas automaticamente despues del envio hace falta conectar una credencial de escritura de Google Sheets o un webhook de Apps Script.
 
 ## Secuencia de prueba
 
@@ -73,6 +86,8 @@ Auxiliar cruce
     - Documento aplicado correcto.
     - Movimiento de caja correcto.
 
+Despues de un envio real, el sistema bloquea otro envio durante 15 minutos. El bloqueo queda registrado en el estado local de la app y se ve en `/api/status` como `cooldown.cooldown_active=true`.
+
 ## Criterio de exito
 
 La prueba queda aprobada si Siesa responde transaccion exitosa, el recibo aparece en `Financiero > Cuentas x cobrar > Recibos de caja > Clientes`, el movimiento de caja refleja el valor correcto y la app conserva trazabilidad del intento.
@@ -84,4 +99,5 @@ La prueba queda aprobada si Siesa responde transaccion exitosa, el recibo aparec
 - La fila no trae documento cruce.
 - El documento cruce no tiene saldo disponible.
 - El valor a aplicar supera el saldo del documento.
+- El envio anterior fue hace menos de 15 minutos.
 - Contabilidad no confirma caja, cobrador, U.N. o flujo efectivo productivo.

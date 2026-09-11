@@ -8,13 +8,13 @@ from typing import Any
 class SyncState:
     def __init__(self, path: Path) -> None:
         self.path = path
-        self._keys = self._load()
+        self._data = self._load()
+        self._keys = {str(item) for item in self._data.get("processed_keys", [])}
 
-    def _load(self) -> set[str]:
+    def _load(self) -> dict[str, Any]:
         if not self.path.exists():
-            return set()
-        data = json.loads(self.path.read_text(encoding="utf-8"))
-        return {str(item) for item in data.get("processed_keys", [])}
+            return {}
+        return json.loads(self.path.read_text(encoding="utf-8"))
 
     def contains(self, key: str) -> bool:
         return key in self._keys
@@ -22,9 +22,15 @@ class SyncState:
     def add(self, key: str) -> None:
         self._keys.add(key)
 
+    def get(self, key: str) -> Any:
+        return self._data.get(key)
+
+    def set(self, key: str, value: Any) -> None:
+        self._data[key] = value
+
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        data = {"processed_keys": sorted(self._keys)}
+        data = {**self._data, "processed_keys": sorted(self._keys)}
         self.path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 

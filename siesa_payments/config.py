@@ -14,6 +14,13 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "si", "s"}
 
 
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return int(value.strip())
+
+
 def load_env_file(path: Path, override: bool = False) -> None:
     if not path.exists():
         return
@@ -35,6 +42,7 @@ class RuntimeConfig:
     environment: str
     dry_run: bool
     allow_send: bool
+    send_cooldown_minutes: int
     input_csv: str | None
     sheets_csv_url: str | None
     mapping_file: Path
@@ -60,6 +68,7 @@ class RuntimeConfig:
             environment=os.getenv("SIESA_ENV", "qa").strip().lower(),
             dry_run=_env_bool("SIESA_DRY_RUN", True),
             allow_send=_env_bool("SIESA_ALLOW_SEND", False),
+            send_cooldown_minutes=_env_int("SIESA_SEND_COOLDOWN_MINUTES", 15),
             input_csv=os.getenv("SIESA_INPUT_CSV") or None,
             sheets_csv_url=os.getenv("SIESA_SHEETS_CSV_URL") or None,
             mapping_file=Path(os.getenv("SIESA_CONFIG_FILE", "config/siesa_recibo_caja_mapping.json")),

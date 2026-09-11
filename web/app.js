@@ -28,6 +28,14 @@ function writeJson(element, data) {
   element.textContent = JSON.stringify(data, null, 2);
 }
 
+function formatCooldown(seconds) {
+  if (!seconds || seconds <= 0) {
+    return "Disponible";
+  }
+  const minutes = Math.ceil(seconds / 60);
+  return `Espere ${minutes} min`;
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     headers: { "Accept": "application/json" },
@@ -68,14 +76,17 @@ async function loadStatus() {
   if (!data.runtime.cross_fallback_configured) {
     resultOutput.textContent = "Cruce dinamico activo: cada fila debe traer Documento cruce o columnas separadas de CxC.";
   }
-  if (!data.runtime.send_unlocked) {
+  const cooldownActive = data.runtime.cooldown?.cooldown_active;
+  if (!data.runtime.send_unlocked || cooldownActive) {
     sendButton.disabled = true;
     sendButton.classList.add("locked");
-    sendButton.querySelector("small").textContent = "Bloqueado hasta SIESA_ALLOW_SEND=true";
+    sendButton.querySelector("small").textContent = cooldownActive
+      ? formatCooldown(data.runtime.cooldown.retry_after_seconds)
+      : "Bloqueado hasta SIESA_ALLOW_SEND=true";
   } else {
     sendButton.disabled = false;
     sendButton.classList.remove("locked");
-    sendButton.querySelector("small").textContent = "Crea recibo en Siesa pruebas";
+    sendButton.querySelector("small").textContent = "Crea recibo en Siesa";
   }
 }
 
@@ -158,6 +169,15 @@ async function sendQa() {
       writeJson(resultOutput, {
         ok: false,
         error: "Envio bloqueado por seguridad. Active SIESA_ALLOW_SEND=true solo cuando quiera crear recibos.",
+      });
+      return;
+    }
+    if (status.runtime.cooldown?.cooldown_active) {
+      writeJson(resultOutput, {
+        ok: false,
+        error: "Envio bloqueado por cooldown de 15 minutos.",
+        retry_after_seconds: status.runtime.cooldown.retry_after_seconds,
+        next_activation_at: status.runtime.cooldown.next_activation_at,
       });
       return;
     }

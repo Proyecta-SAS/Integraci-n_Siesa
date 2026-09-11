@@ -15,7 +15,7 @@ from urllib.parse import parse_qs, urlparse
 from .config import MappingConfig, RuntimeConfig, load_env_file
 from .flow import decide_flow
 from .source import iter_payments
-from .sync import PaymentSyncService
+from .sync import PaymentSyncService, SendCooldownError
 from .validation import PaymentValidator
 
 
@@ -45,6 +45,7 @@ def _runtime_for_request(dry_run: bool) -> RuntimeConfig:
         environment=runtime.environment,
         dry_run=dry_run,
         allow_send=runtime.allow_send,
+        send_cooldown_minutes=runtime.send_cooldown_minutes,
         input_csv=runtime.input_csv,
         sheets_csv_url=runtime.sheets_csv_url,
         mapping_file=runtime.mapping_file,
@@ -69,10 +70,12 @@ def _runtime_for_request(dry_run: bool) -> RuntimeConfig:
 def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
     missing_send_env = [name for name in REQUIRED_SEND_ENV if not os.getenv(name)]
     missing_cross_env = [env_name for _field_name, env_name in CROSS_FIELD_ENV if not os.getenv(env_name)]
+    cooldown = PaymentSyncService(runtime, MappingConfig.load(runtime.mapping_file)).send_cooldown_status()
     return {
         "environment": runtime.environment,
         "dry_run": runtime.dry_run,
         "allow_send": runtime.allow_send,
+        "send_cooldown_minutes": runtime.send_cooldown_minutes,
         "source": "input_csv" if runtime.input_csv else "google_sheets_csv" if runtime.sheets_csv_url else "missing",
         "input_csv": runtime.input_csv,
         "sheets_csv_url_configured": bool(runtime.sheets_csv_url),
@@ -98,6 +101,8 @@ def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
             and not missing_send_env
         ),
         "send_unlocked": bool(runtime.allow_send),
+        "cooldown": cooldown,
+        "can_send_now": bool(runtime.allow_send and not cooldown["cooldown_active"]),
     }
 
 
@@ -251,6 +256,15 @@ class AppHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, **run_sync(send=True)})
                 return
             self._json({"ok": False, "error": "endpoint no encontrado"}, status=HTTPStatus.NOT_FOUND)
+        except SendCooldownError as exc:
+            self._json(
+                {
+                    "ok": False,
+                    "error": str(exc),
+                    "retry_after_seconds": exc.retry_after_seconds,
+                },
+                status=HTTPStatus.TOO_MANY_REQUESTS,
+            )
         except Exception as exc:
             self._json({"ok": False, "error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 

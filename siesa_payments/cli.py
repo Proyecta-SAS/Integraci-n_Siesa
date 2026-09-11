@@ -18,6 +18,7 @@ def _load_runtime(args: argparse.Namespace) -> RuntimeConfig:
         environment=args.env or runtime.environment,
         dry_run=runtime.dry_run if args.dry_run is None else args.dry_run,
         allow_send=runtime.allow_send,
+        send_cooldown_minutes=runtime.send_cooldown_minutes,
         input_csv=args.input_csv or runtime.input_csv,
         sheets_csv_url=args.sheets_csv_url or runtime.sheets_csv_url,
         mapping_file=Path(args.config_file) if args.config_file else runtime.mapping_file,

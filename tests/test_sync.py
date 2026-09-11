@@ -26,6 +26,7 @@ def runtime_for(tmp_path: Path, csv_path: Path, dry_run: bool) -> RuntimeConfig:
         environment="qa",
         dry_run=dry_run,
         allow_send=not dry_run,
+        send_cooldown_minutes=15,
         input_csv=str(csv_path),
         sheets_csv_url=None,
         mapping_file=Path("config/siesa_recibo_caja_mapping.json"),
@@ -118,6 +119,7 @@ class SyncTests(TestCase):
                 environment=runtime.environment,
                 dry_run=runtime.dry_run,
                 allow_send=False,
+                send_cooldown_minutes=runtime.send_cooldown_minutes,
                 input_csv=runtime.input_csv,
                 sheets_csv_url=runtime.sheets_csv_url,
                 mapping_file=runtime.mapping_file,
@@ -140,3 +142,46 @@ class SyncTests(TestCase):
 
             with self.assertRaises(PermissionError):
                 PaymentSyncService(runtime, self.mapping).sync()
+
+    def test_send_cooldown_blocks_second_activation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            csv_path = tmp_path / "payments.csv"
+            csv_path.write_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), encoding="utf-8")
+            first_transport = FakeTransport(body=b'{"documento":"RC-1"}')
+            first_client = SiesaHubClient(
+                base_url="https://siesa.example",
+                connikey="key",
+                connitoken="token",
+                client_id="client",
+                client_secret="secret",
+                id_compania="1",
+                id_documento="142888",
+                nombre_documento="API_v1_ReciboCaja",
+                id_ecosistema="10",
+                execute_path="/hub/execute",
+                transport=first_transport,
+            )
+            runtime = runtime_for(tmp_path, csv_path, False)
+
+            first_result = PaymentSyncService(runtime, self.mapping, first_client).sync()
+
+            self.assertEqual(first_result.sent, 1)
+            second_transport = FakeTransport(body=b'{"documento":"RC-2"}')
+            second_client = SiesaHubClient(
+                base_url="https://siesa.example",
+                connikey="key",
+                connitoken="token",
+                client_id="client",
+                client_secret="secret",
+                id_compania="1",
+                id_documento="142888",
+                nombre_documento="API_v1_ReciboCaja",
+                id_ecosistema="10",
+                execute_path="/hub/execute",
+                transport=second_transport,
+            )
+
+            with self.assertRaises(PermissionError):
+                PaymentSyncService(runtime, self.mapping, second_client).sync()
+            self.assertEqual(second_transport.calls, [])
