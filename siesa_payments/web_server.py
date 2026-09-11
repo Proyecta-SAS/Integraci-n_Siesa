@@ -5,6 +5,7 @@ import json
 import mimetypes
 import os
 from dataclasses import asdict
+from decimal import Decimal
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -158,12 +159,49 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
                 "method": payment.payment_method,
                 "amount": str(payment.amount),
                 "valid": not issues,
+                "ready": not issues and cross_ready,
                 "issues": row_issues,
             }
         )
         if len(rows) >= limit:
             break
     return {"runtime": _redacted_runtime(runtime), "count": len(rows), "rows": rows}
+
+
+def preflight(limit: int = 100) -> dict[str, Any]:
+    inspected = inspect_rows(limit=limit)
+    rows = inspected["rows"]
+    total_amount = Decimal("0")
+    ready_rows = []
+    invalid_rows = []
+    missing_cross_rows = []
+    for row in rows:
+        if row["ready"]:
+            ready_rows.append(row["source_row"])
+            total_amount += Decimal(row["amount"])
+        else:
+            invalid_rows.append(row["source_row"])
+        if not row["cross_ready"]:
+            missing_cross_rows.append(row["source_row"])
+
+    runtime = inspected["runtime"]
+    return {
+        **inspected,
+        "preflight": {
+            "ready": bool(runtime["ready_to_send"] and rows and not invalid_rows),
+            "send_unlocked": runtime["send_unlocked"],
+            "rows_checked": len(rows),
+            "ready_rows": len(ready_rows),
+            "invalid_rows": invalid_rows,
+            "missing_cross_rows": missing_cross_rows,
+            "total_ready_amount": str(total_amount),
+            "next_step": (
+                "activar SIESA_ALLOW_SEND=true solo durante la ventana controlada"
+                if runtime["ready_to_send"] and rows and not invalid_rows and not runtime["send_unlocked"]
+                else "corregir configuracion o filas antes de enviar"
+            ),
+        },
+    }
 
 
 def run_sync(send: bool) -> dict[str, Any]:
@@ -193,6 +231,11 @@ class AppHandler(BaseHTTPRequestHandler):
                 params = parse_qs(parsed.query)
                 limit = int(params.get("limit", ["25"])[0])
                 self._json({"ok": True, **inspect_rows(limit=limit)})
+                return
+            if parsed.path == "/api/preflight":
+                params = parse_qs(parsed.query)
+                limit = int(params.get("limit", ["100"])[0])
+                self._json({"ok": True, **preflight(limit=limit)})
                 return
             self._static(parsed.path)
         except Exception as exc:

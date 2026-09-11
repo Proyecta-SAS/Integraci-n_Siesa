@@ -4,6 +4,7 @@ const launcherPanel = document.querySelector("#launcherPanel");
 const modulePanel = document.querySelector("#modulePanel");
 const backButton = document.querySelector("#backButton");
 const loadRowsButton = document.querySelector("#loadRowsButton");
+const preflightButton = document.querySelector("#preflightButton");
 const dryRunButton = document.querySelector("#dryRunButton");
 const sendButton = document.querySelector("#sendButton");
 const statusOutput = document.querySelector("#statusOutput");
@@ -127,6 +128,14 @@ async function dryRun() {
   });
 }
 
+async function preflight() {
+  await withBusy(preflightButton, "Revisando...", async () => {
+    const data = await api("/api/preflight?limit=100");
+    renderRows(data.rows);
+    writeJson(resultOutput, data.preflight);
+  });
+}
+
 async function sendQa() {
   await withBusy(sendButton, "Enviando...", async () => {
     const status = await api("/api/status");
@@ -184,5 +193,6 @@ activatorButtons.forEach((button) => {
 
 backButton.addEventListener("click", showLauncher);
 loadRowsButton.addEventListener("click", loadRows);
+preflightButton.addEventListener("click", preflight);
 dryRunButton.addEventListener("click", dryRun);
 sendButton.addEventListener("click", sendQa);

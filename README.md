@@ -70,6 +70,7 @@ Variables principales:
 - `SIESA_INPUT_CSV`: archivo CSV local.
 - `SIESA_SHEETS_CSV_URL`: URL de exportacion CSV de Google Sheets.
 - `SIESA_DRY_RUN`: `true` para validar y generar payloads sin enviar.
+- `SIESA_ALLOW_SEND`: `true` habilita envio real. Debe quedar `false` salvo durante una ventana controlada.
 
 ## Uso
 
@@ -104,6 +105,7 @@ Programar ejecucion automatica cada 5 minutos:
 ```
 
 Ver tambien `docs/flujo_equivalente_alegra.md`.
+Para la reunion de paso a produccion use `docs/prueba_produccion_reunion.md`.
 
 ## Visual operativa
 
