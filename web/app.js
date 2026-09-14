@@ -472,7 +472,20 @@ async function sendQa() {
       renderRows(rowsData.rows);
       return;
     }
-    const data = await api("/api/sync/send", { method: "POST" });
+    const selected = window.prompt("Indica el numero de la unica fila de Sheets que autorizas enviar a Siesa.");
+    if (selected === null) {
+      return;
+    }
+    const sourceRow = Number.parseInt(selected, 10);
+    const selectedRow = rowsData.rows.find((row) => row.source_row === sourceRow);
+    if (!Number.isInteger(sourceRow) || !selectedRow || !selectedRow.ready) {
+      setResult("Fila no autorizada", "Selecciona una fila valida y lista para enviar.", [], "warn");
+      return;
+    }
+    if (!window.confirm(`Se creara un recibo real para la fila ${sourceRow} por ${formatMoney(selectedRow.amount)}. Continuar?`)) {
+      return;
+    }
+    const data = await api(`/api/sync/send?source_row=${sourceRow}`, { method: "POST" });
     writeJson(resultOutput, data);
     await summarizeSyncResult(data, "send");
     await loadRows(false);

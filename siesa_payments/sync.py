@@ -132,7 +132,7 @@ class PaymentSyncService:
         self.state.set("last_activation_at", _now())
         self.state.save()
 
-    def sync(self, dry_run: bool | None = None) -> SyncResult:
+    def sync(self, dry_run: bool | None = None, source_rows: set[int] | None = None) -> SyncResult:
         is_dry_run = self.runtime.dry_run if dry_run is None else dry_run
         if not is_dry_run and not self.runtime.allow_send:
             raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
@@ -148,6 +148,8 @@ class PaymentSyncService:
         }
 
         for payment in iter_payments(self.runtime.input_csv, self.runtime.sheets_csv_url, self.mapping):
+            if source_rows is not None and payment.source_row not in source_rows:
+                continue
             counters["processed"] += 1
             flow = decide_flow(payment)
             key = payment.idempotency_key()

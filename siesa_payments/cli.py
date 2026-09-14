@@ -6,13 +6,17 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from .config import MappingConfig, RuntimeConfig
+from .config import MappingConfig, RuntimeConfig, load_env_file
 from .contract import compare_contract_to_mapping, load_contract_body
 from .siesa_hub import SiesaHubClient
 from .sync import PaymentSyncService
 
 
 def _load_runtime(args: argparse.Namespace) -> RuntimeConfig:
+    # The web server and PowerShell runner already load .env.  Keep the CLI
+    # consistent so the documented direct commands work from the repository.
+    # Existing environment variables remain authoritative (as in Railway).
+    load_env_file(Path(".env"))
     runtime = RuntimeConfig.from_env()
     return RuntimeConfig(
         environment=args.env or runtime.environment,

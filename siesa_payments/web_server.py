@@ -277,17 +277,31 @@ def _audit_events(limit: int = 25, event_type: str | None = None) -> list[dict[s
     return events[-limit:]
 
 
-def run_sync(send: bool) -> dict[str, Any]:
+def run_sync(send: bool, source_row: int | None = None) -> dict[str, Any]:
     runtime = _runtime_for_request(dry_run=not send)
     if send and not runtime.allow_send:
         raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
     mapping = MappingConfig.load(runtime.mapping_file)
-    result = PaymentSyncService(runtime, mapping).sync(dry_run=not send)
+    result = PaymentSyncService(runtime, mapping).sync(
+        dry_run=not send,
+        source_rows={source_row} if source_row is not None else None,
+    )
     return {
         "runtime": _redacted_runtime(runtime),
         "mode": "send" if send else "dry_run",
+        "source_row": source_row,
         "result": asdict(result),
     }
+
+
+def _source_row_from_query(parsed: Any) -> int | None:
+    value = parse_qs(parsed.query).get("source_row", [None])[0]
+    if value is None:
+        return None
+    source_row = int(value)
+    if source_row < 2:
+        raise ValueError("source_row debe ser una fila de datos (2 o mayor)")
+    return source_row
 
 
 class AppHandler(BaseHTTPRequestHandler):
@@ -323,11 +337,12 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         try:
+            source_row = _source_row_from_query(parsed)
             if parsed.path == "/api/sync/dry-run":
-                self._json({"ok": True, **run_sync(send=False)})
+                self._json({"ok": True, **run_sync(send=False, source_row=source_row)})
                 return
             if parsed.path == "/api/sync/send":
-                self._json({"ok": True, **run_sync(send=True)})
+                self._json({"ok": True, **run_sync(send=True, source_row=source_row)})
                 return
             self._json({"ok": False, "error": "endpoint no encontrado"}, status=HTTPStatus.NOT_FOUND)
         except SendCooldownError as exc:

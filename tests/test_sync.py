@@ -77,6 +77,17 @@ class SyncTests(TestCase):
             self.assertEqual(event["flow"], "create_person_contact_receipt")
             self.assertIn("siesa_target", event)
 
+    def test_sync_can_limit_to_one_source_row(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            csv_path = tmp_path / "payments.csv"
+            csv_path.write_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), encoding="utf-8")
+
+            result = PaymentSyncService(runtime_for(tmp_path, csv_path, True), self.mapping).sync(source_rows={2})
+
+            self.assertEqual(result.processed, 1)
+            self.assertEqual(result.dry_run, 1)
+
     def test_send_posts_to_connector_and_stores_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
