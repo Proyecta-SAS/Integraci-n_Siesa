@@ -1,5 +1,6 @@
 const activatorButtons = document.querySelectorAll(".activator-button");
 const selectedCompany = document.querySelector("#selectedCompany");
+const sourceLabel = document.querySelector("#sourceLabel");
 const launcherPanel = document.querySelector("#launcherPanel");
 const modulePanel = document.querySelector("#modulePanel");
 const backButton = document.querySelector("#backButton");
@@ -26,6 +27,7 @@ const envPill = document.querySelector("#envPill");
 const crossHeader = document.querySelector("#crossHeader");
 
 let currentApplicationMode = "cartera";
+let selectedActivator = "alianza";
 
 const moneyFormatter = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -136,6 +138,9 @@ function updateStatusSummary(runtime) {
   const missingCount = (runtime.missing_send_env || []).length;
   const cooldown = runtime.cooldown || {};
   currentApplicationMode = runtime.application_mode || "cartera";
+  if (runtime.activator?.sheet_name) {
+    sourceLabel.textContent = `Google Sheets / ${runtime.activator.sheet_name}`;
+  }
   const otherIncome = isOtherIncomeMode();
   envPill.textContent = otherIncome
     ? `${String(runtime.environment || "QA").toUpperCase()} · 28050505`
@@ -264,7 +269,8 @@ async function summarizeSyncResult(data, mode) {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
+  const separator = path.includes("?") ? "&" : "?";
+  const response = await fetch(`${path}${separator}activator=${encodeURIComponent(selectedActivator)}`, {
     headers: { "Accept": "application/json" },
     ...options,
   });
@@ -492,6 +498,7 @@ activatorButtons.forEach((button) => {
     activatorButtons.forEach((item) => item.classList.remove("active"));
     button.classList.add("active");
     selectedCompany.textContent = button.dataset.company;
+    selectedActivator = button.dataset.activator;
     if (button.dataset.enabled === "true") {
       showModule();
       return;

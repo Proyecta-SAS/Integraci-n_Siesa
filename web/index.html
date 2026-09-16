@@ -19,16 +19,16 @@
         </div>
 
         <nav class="activator-grid" aria-label="Activadores Siesa">
-          <button class="activator-button" type="button" data-company="Siesa Antiguo" data-enabled="false">
+          <button class="activator-button" type="button" data-company="Siesa Antiguo" data-activator="antiguo" data-enabled="false">
             Siesa Antiguo
           </button>
-          <button class="activator-button" type="button" data-company="Siesa Lidera" data-enabled="false">
+          <button class="activator-button" type="button" data-company="Siesa Lidera" data-activator="lidera" data-enabled="true">
             Siesa Lidera
           </button>
-          <button class="activator-button active" type="button" data-company="Siesa Alianza" data-enabled="true">
+          <button class="activator-button active" type="button" data-company="Siesa Alianza" data-activator="alianza" data-enabled="true">
             Siesa Alianza
           </button>
-          <button class="activator-button" type="button" data-company="Siesa Prosperar" data-enabled="false">
+          <button class="activator-button" type="button" data-company="Siesa Prosperar" data-activator="prosperar" data-enabled="false">
             Siesa Prosperar
           </button>
         </nav>
@@ -40,7 +40,7 @@
           </div>
           <div>
             <span class="status-label">Fuente</span>
-            <strong>Google Sheets / Ingreso - Egreso</strong>
+            <strong id="sourceLabel">Google Sheets / Ingreso - Egreso</strong>
           </div>
           <div>
             <span class="status-label">Destino</span>

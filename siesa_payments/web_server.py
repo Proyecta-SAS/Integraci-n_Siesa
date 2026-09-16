@@ -4,7 +4,7 @@ import argparse
 import json
 import mimetypes
 import os
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from decimal import Decimal
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -21,6 +21,7 @@ from .validation import PaymentValidator
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = ROOT / "web"
+ACTIVATORS_FILE = ROOT / "config" / "siesa_activators.json"
 REQUIRED_SEND_ENV = (
     "SIESA_F_CIA",
     "SIESA_ID_CO",
@@ -38,36 +39,37 @@ CROSS_FIELD_ENV = (
 )
 
 
-def _runtime_for_request(dry_run: bool) -> RuntimeConfig:
+def _activator_config(activator: str) -> dict[str, Any]:
+    key = activator.strip().lower()
+    data = json.loads(ACTIVATORS_FILE.read_text(encoding="utf-8"))
+    definition = data.get("activators", {}).get(key)
+    if not isinstance(definition, dict) or not definition.get("csv_export_url"):
+        raise ValueError(f"activador no configurado: {activator}")
+    return {"key": key, **definition}
+
+
+def _activator_file(path: Path, activator: str) -> Path:
+    if activator == "alianza":
+        return path
+    return path.with_name(f"{path.stem}_{activator}{path.suffix}")
+
+
+def _runtime_for_request(dry_run: bool, activator: str = "alianza") -> RuntimeConfig:
     load_env_file(ROOT / ".env", override=True)
     runtime = RuntimeConfig.from_env()
-    return RuntimeConfig(
-        environment=runtime.environment,
+    definition = _activator_config(activator)
+    return replace(
+        runtime,
         dry_run=dry_run,
-        allow_send=runtime.allow_send,
-        send_cooldown_minutes=runtime.send_cooldown_minutes,
-        input_csv=runtime.input_csv,
-        sheets_csv_url=runtime.sheets_csv_url,
-        mapping_file=runtime.mapping_file,
-        state_file=runtime.state_file,
-        log_file=runtime.log_file,
-        siesa_connector_url=runtime.siesa_connector_url,
-        hub_base_url=runtime.hub_base_url,
-        hub_connector_id=runtime.hub_connector_id,
-        hub_operation=runtime.hub_operation,
-        siesa_connikey=runtime.siesa_connikey,
-        siesa_connitoken=runtime.siesa_connitoken,
-        siesa_client_id=runtime.siesa_client_id,
-        siesa_client_secret=runtime.siesa_client_secret,
-        siesa_id_compania=runtime.siesa_id_compania,
-        siesa_id_ecosistema=runtime.siesa_id_ecosistema,
-        siesa_id_documento=runtime.siesa_id_documento,
-        siesa_nombre_documento=runtime.siesa_nombre_documento,
-        hub_execute_path=runtime.hub_execute_path,
+        input_csv=None,
+        sheets_csv_url=str(definition["csv_export_url"]),
+        state_file=_activator_file(runtime.state_file, str(definition["key"])),
+        log_file=_activator_file(runtime.log_file, str(definition["key"])),
     )
 
 
-def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
+def _redacted_runtime(runtime: RuntimeConfig, activator: str = "alianza") -> dict[str, Any]:
+    definition = _activator_config(activator)
     missing_send_env = [name for name in REQUIRED_SEND_ENV if not os.getenv(name)]
     application_mode = _receipt_application_mode()
     missing_cross_env = (
@@ -77,6 +79,11 @@ def _redacted_runtime(runtime: RuntimeConfig) -> dict[str, Any]:
     )
     cooldown = PaymentSyncService(runtime, MappingConfig.load(runtime.mapping_file)).send_cooldown_status()
     return {
+        "activator": {
+            "key": definition["key"],
+            "label": definition.get("label", definition["key"]),
+            "sheet_name": definition.get("sheet_name", ""),
+        },
         "environment": runtime.environment,
         "application_mode": application_mode,
         "dry_run": runtime.dry_run,
@@ -166,8 +173,8 @@ def _siesa_cross_auxiliary(payment: Any) -> str:
     return payment.cross_auxiliary or os.getenv("SIESA_AUXILIAR_DOCTO_CRUCE", "")
 
 
-def inspect_rows(limit: int = 25) -> dict[str, Any]:
-    runtime = _runtime_for_request(dry_run=True)
+def inspect_rows(limit: int = 25, activator: str = "alianza") -> dict[str, Any]:
+    runtime = _runtime_for_request(dry_run=True, activator=activator)
     mapping = MappingConfig.load(runtime.mapping_file)
     validator = PaymentValidator(mapping.required_transaction_type)
     rows = []
@@ -207,11 +214,11 @@ def inspect_rows(limit: int = 25) -> dict[str, Any]:
         )
         if len(rows) >= limit:
             break
-    return {"runtime": _redacted_runtime(runtime), "count": len(rows), "rows": rows}
+    return {"runtime": _redacted_runtime(runtime, activator), "count": len(rows), "rows": rows}
 
 
-def preflight(limit: int = 100) -> dict[str, Any]:
-    inspected = inspect_rows(limit=limit)
+def preflight(limit: int = 100, activator: str = "alianza") -> dict[str, Any]:
+    inspected = inspect_rows(limit=limit, activator=activator)
     rows = inspected["rows"]
     total_amount = Decimal("0")
     ready_rows = []
@@ -246,8 +253,10 @@ def preflight(limit: int = 100) -> dict[str, Any]:
     }
 
 
-def _audit_events(limit: int = 25, event_type: str | None = None) -> list[dict[str, Any]]:
-    runtime = _runtime_for_request(dry_run=True)
+def _audit_events(
+    limit: int = 25, event_type: str | None = None, activator: str = "alianza"
+) -> list[dict[str, Any]]:
+    runtime = _runtime_for_request(dry_run=True, activator=activator)
     path = runtime.log_file
     if not path.exists():
         return []
@@ -277,8 +286,8 @@ def _audit_events(limit: int = 25, event_type: str | None = None) -> list[dict[s
     return events[-limit:]
 
 
-def run_sync(send: bool, source_row: int | None = None) -> dict[str, Any]:
-    runtime = _runtime_for_request(dry_run=not send)
+def run_sync(send: bool, source_row: int | None = None, activator: str = "alianza") -> dict[str, Any]:
+    runtime = _runtime_for_request(dry_run=not send, activator=activator)
     if send and not runtime.allow_send:
         raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
     mapping = MappingConfig.load(runtime.mapping_file)
@@ -287,7 +296,7 @@ def run_sync(send: bool, source_row: int | None = None) -> dict[str, Any]:
         source_rows={source_row} if source_row is not None else None,
     )
     return {
-        "runtime": _redacted_runtime(runtime),
+        "runtime": _redacted_runtime(runtime, activator),
         "mode": "send" if send else "dry_run",
         "source_row": source_row,
         "result": asdict(result),
@@ -304,31 +313,36 @@ def _source_row_from_query(parsed: Any) -> int | None:
     return source_row
 
 
+def _activator_from_query(parsed: Any) -> str:
+    return parse_qs(parsed.query).get("activator", ["alianza"])[0]
+
+
 class AppHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         try:
+            activator = _activator_from_query(parsed)
             if parsed.path == "/health":
                 self._json({"ok": True, "service": "activadores-siesa"})
                 return
             if parsed.path == "/api/status":
-                self._json({"ok": True, "runtime": _redacted_runtime(_runtime_for_request(dry_run=True))})
+                self._json({"ok": True, "runtime": _redacted_runtime(_runtime_for_request(dry_run=True, activator=activator), activator)})
                 return
             if parsed.path == "/api/payments":
                 params = parse_qs(parsed.query)
                 limit = int(params.get("limit", ["25"])[0])
-                self._json({"ok": True, **inspect_rows(limit=limit)})
+                self._json({"ok": True, **inspect_rows(limit=limit, activator=activator)})
                 return
             if parsed.path == "/api/preflight":
                 params = parse_qs(parsed.query)
                 limit = int(params.get("limit", ["100"])[0])
-                self._json({"ok": True, **preflight(limit=limit)})
+                self._json({"ok": True, **preflight(limit=limit, activator=activator)})
                 return
             if parsed.path == "/api/audit":
                 params = parse_qs(parsed.query)
                 limit = int(params.get("limit", ["25"])[0])
                 event_type = params.get("event", [None])[0]
-                self._json({"ok": True, "events": _audit_events(limit=limit, event_type=event_type)})
+                self._json({"ok": True, "events": _audit_events(limit=limit, event_type=event_type, activator=activator)})
                 return
             self._static(parsed.path)
         except Exception as exc:
@@ -337,12 +351,13 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         try:
+            activator = _activator_from_query(parsed)
             source_row = _source_row_from_query(parsed)
             if parsed.path == "/api/sync/dry-run":
-                self._json({"ok": True, **run_sync(send=False, source_row=source_row)})
+                self._json({"ok": True, **run_sync(send=False, source_row=source_row, activator=activator)})
                 return
             if parsed.path == "/api/sync/send":
-                self._json({"ok": True, **run_sync(send=True, source_row=source_row)})
+                self._json({"ok": True, **run_sync(send=True, source_row=source_row, activator=activator)})
                 return
             self._json({"ok": False, "error": "endpoint no encontrado"}, status=HTTPStatus.NOT_FOUND)
         except SendCooldownError as exc:

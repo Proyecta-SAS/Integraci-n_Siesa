@@ -10,6 +10,7 @@ Se toma como fuente operativa la hoja nativa de Google Sheets compartida por Ava
 - Pestana operativa: `Ingreso / Egreso`
 - Pestana de catalogos: `ID`
 - Configuracion local: `config/google_sheet_operativa.json`
+- Activadores conectados: `config/siesa_activators.json` (cada activador tiene su propia hoja, estado y bitacora).
 
 El equipo operativo solo llena el bloque verde `A:K` de `Ingreso / Egreso`:
 

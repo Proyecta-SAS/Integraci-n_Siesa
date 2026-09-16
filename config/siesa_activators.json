@@ -1,0 +1,18 @@
+{
+  "activators": {
+    "alianza": {
+      "label": "Siesa Alianza",
+      "spreadsheet_id": "1TuXSZESNm1xJGJvXLMKTq2bAY1ZvmCl6n8Aez1FRVp8",
+      "sheet_id": 0,
+      "sheet_name": "Ingreso / Egreso",
+      "csv_export_url": "https://docs.google.com/spreadsheets/d/1TuXSZESNm1xJGJvXLMKTq2bAY1ZvmCl6n8Aez1FRVp8/export?format=csv&gid=0"
+    },
+    "lidera": {
+      "label": "Siesa Lidera",
+      "spreadsheet_id": "1CweubQxyCEtrceCDLUo76ipaQIWtjXdF8GhwKHJfslU",
+      "sheet_id": 0,
+      "sheet_name": "DB",
+      "csv_export_url": "https://docs.google.com/spreadsheets/d/1CweubQxyCEtrceCDLUo76ipaQIWtjXdF8GhwKHJfslU/export?format=csv&gid=0"
+    }
+  }
+}
