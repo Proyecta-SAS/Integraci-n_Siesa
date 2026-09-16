@@ -20,6 +20,13 @@
       "sheet_id": 0,
       "sheet_name": "db",
       "csv_export_url": "https://docs.google.com/spreadsheets/d/1Ynii4YRKLFJ5ZCEVbtKNBa16v8aNJMypHb5crDRkeeU/export?format=csv&gid=0"
+    },
+    "antiguo": {
+      "label": "Siesa Antiguo",
+      "spreadsheet_id": "1SLPPwoEz06CVbSd6OuC6nAv-wbTygRA6dnfO6t8_mmI",
+      "sheet_id": 0,
+      "sheet_name": "Ingresos / Egresos ",
+      "csv_export_url": "https://docs.google.com/spreadsheets/d/1SLPPwoEz06CVbSd6OuC6nAv-wbTygRA6dnfO6t8_mmI/export?format=csv&gid=0"
     }
   }
 }
