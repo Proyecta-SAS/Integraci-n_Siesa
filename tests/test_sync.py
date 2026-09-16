@@ -52,6 +52,11 @@ def runtime_for(tmp_path: Path, csv_path: Path, dry_run: bool) -> RuntimeConfig:
 class SyncTests(TestCase):
     def setUp(self) -> None:
         self.mapping = MappingConfig.load(Path("config/siesa_recibo_caja_mapping.json"))
+        self.env = patch.dict('os.environ', {'SIESA_ID_MEDIO_PAGO_CONSIGNACION': 'CONSIG_PRUEBA', 'SIESA_ID_FE': '1103'})
+        self.env.start()
+
+    def tearDown(self) -> None:
+        self.env.stop()
 
     def test_dry_run_does_not_call_hub(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

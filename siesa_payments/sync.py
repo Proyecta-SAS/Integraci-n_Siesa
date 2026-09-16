@@ -31,6 +31,18 @@ class SendCooldownError(PermissionError):
         super().__init__(f"envio bloqueado por cooldown: espere {minutes} minutos")
 
 
+def _validate_send_payload(payload: dict[str, Any]) -> None:
+    """Prevent a live request when accounting payment settings are incomplete."""
+    caja = (payload.get("Caja") or [{}])[0]
+    receipt = (payload.get("RCyotrosingresos") or [{}])[0]
+    missing: list[str] = []
+    if not str(caja.get("F358_ID_MEDIOS_PAGO") or "").strip():
+        missing.append("SIESA_ID_MEDIO_PAGO_CONSIGNACION")
+    if not str(receipt.get("F357_ID_FE") or "").strip():
+        missing.append("SIESA_ID_FE")
+    if missing:
+        raise PermissionError("envio bloqueado: falta parametrizar " + ", ".join(missing))
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -168,6 +180,8 @@ class PaymentSyncService:
                 counters["dry_run"] += 1
                 self.log.write(_event("dry_run", payment, payload=payload, flow=flow))
                 continue
+
+            _validate_send_payload(payload)
 
             response = self._client().register_cash_receipt(self.mapping.connector_id, payload, key)
             if response.ok:

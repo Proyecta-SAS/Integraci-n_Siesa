@@ -13,6 +13,11 @@ from siesa_payments.validation import PaymentValidator
 class MappingTests(TestCase):
     def setUp(self) -> None:
         self.mapping = MappingConfig.load(Path("config/siesa_recibo_caja_mapping.json"))
+        self.env = patch.dict('os.environ', {'SIESA_ID_MEDIO_PAGO_CONSIGNACION': 'CONSIG_PRUEBA'})
+        self.env.start()
+
+    def tearDown(self) -> None:
+        self.env.stop()
 
     def test_reads_alegra_headers_with_spaces_and_accents(self) -> None:
         csv_text = (
@@ -51,7 +56,7 @@ class MappingTests(TestCase):
         self.assertEqual(payload["Caja"][0]["F350_ID_TIPO_DOCTO"], "RC")
         self.assertEqual(payload["RCyotrosingresos"][0]["F350_ID_TIPO_DOCTO"], "RC")
         self.assertEqual(payload["Caja"][0]["F358_VALOR"], "+000000000480000.0000")
-        self.assertEqual(payload["Caja"][0]["F358_ID_MEDIOS_PAGO"], "EFE")
+        self.assertEqual(payload["Caja"][0]["F358_ID_MEDIOS_PAGO"], "CONSIG_PRUEBA")
         self.assertEqual(payload["Caja"][0]["F358_FECHA_CONSIGNACION"], "20260213")
         self.assertEqual(payload["RCyotrosingresos"][0]["F350_FECHA"], "20260213")
         self.assertEqual(payload["RCyotrosingresos"][0]["F357_VALOR_INGRESO"], "+000000000480000.0000")

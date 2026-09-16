@@ -158,8 +158,9 @@
       "format": "integer_8"
     },
     "Caja.0.F358_ID_MEDIOS_PAGO": {
-      "source": "literal",
-      "value": "EFE"
+      "source": "env",
+      "name": "SIESA_ID_MEDIO_PAGO_CONSIGNACION",
+      "default": ""
     },
     "Caja.0.F358_VALOR": {
       "source": "payment",
@@ -167,16 +168,18 @@
       "format": "decimal_signed_21"
     },
     "Caja.0.F358_ID_BANCO": {
-      "source": "literal",
-      "value": ""
+      "source": "env",
+      "name": "SIESA_ID_BANCO",
+      "default": ""
     },
     "Caja.0.F358_NRO_CHEQUE": {
       "source": "literal",
       "value": ""
     },
     "Caja.0.F358_NRO_CUENTA": {
-      "source": "literal",
-      "value": ""
+      "source": "env",
+      "name": "SIESA_NRO_CUENTA",
+      "default": ""
     },
     "Caja.0.F358_COD_SEGURIDAD": {
       "source": "literal",
@@ -220,8 +223,9 @@
       "value": ""
     },
     "Caja.0.f358_docto_banco_cg": {
-      "source": "literal",
-      "value": ""
+      "source": "env",
+      "name": "SIESA_DOCTO_BANCO_CG",
+      "default": ""
     },
     "RCyotrosingresos.0.F_CIA": {
       "source": "env",
