@@ -13,6 +13,13 @@
       "sheet_id": 0,
       "sheet_name": "DB",
       "csv_export_url": "https://docs.google.com/spreadsheets/d/1CweubQxyCEtrceCDLUo76ipaQIWtjXdF8GhwKHJfslU/export?format=csv&gid=0"
+    },
+    "prosperar": {
+      "label": "Siesa Prosperar",
+      "spreadsheet_id": "1Ynii4YRKLFJ5ZCEVbtKNBa16v8aNJMypHb5crDRkeeU",
+      "sheet_id": 0,
+      "sheet_name": "db",
+      "csv_export_url": "https://docs.google.com/spreadsheets/d/1Ynii4YRKLFJ5ZCEVbtKNBa16v8aNJMypHb5crDRkeeU/export?format=csv&gid=0"
     }
   }
 }
