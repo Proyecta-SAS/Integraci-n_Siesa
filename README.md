@@ -11,15 +11,14 @@ Se toma como fuente operativa la hoja nativa de Google Sheets compartida por Ava
 - Pestana de catalogos: `ID`
 - Configuracion local: `config/google_sheet_operativa.json`
 
-La estructura de entrada confirmada usa los encabezados `A1:V1`:
+El equipo operativo solo llena el bloque verde `A:K` de `Ingreso / Egreso`:
 
 ```text
 Cuenta bancaria, Fecha, Contacto, Tipo de Transaccion, Metodo de pago,
-Centro de costos, Concepto, Cantidad, Valor, Nota, Observaciones,
-Cliente, Tipo, Tipo de identificacion, Numero de identificacion,
-Nombre, Apellido, Tipo de persona, Responsabilidad tributaria,
-Municipio / Departamento, Direccion
+Centro de costos, Concepto, Cantidad, Valor, Nota, Observaciones
 ```
+
+Las columnas posteriores pertenecen al flujo historico de Alegra y no se usan para crear el recibo. `Consumidor Final` se homologa al tercero Siesa `222222222222`; para cada contacto nuevo se debe registrar antes su tercero Siesa.
 
 El flujo principal queda parametrizado como `SIESA_RECIBO_FLUJO=otros_ingresos`: crea recibos tipo `RC`, no aplica cartera `FVE` y registra el ingreso en el auxiliar `28050505` (`ANTICIPO POR IDENTIFICAR`).
 

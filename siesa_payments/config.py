@@ -96,6 +96,7 @@ class MappingConfig:
     operation: str
     required_transaction_type: str | None
     sheet_columns: dict[str, list[str]]
+    contact_third_parties: dict[str, dict[str, str]]
     value_maps: dict[str, dict[str, str]]
     payload_template: dict[str, dict[str, Any]]
 
@@ -109,6 +110,11 @@ class MappingConfig:
             sheet_columns={
                 key: [str(alias) for alias in aliases]
                 for key, aliases in data.get("sheet_columns", {}).items()
+            },
+            contact_third_parties={
+                str(contact): {str(field): str(value) for field, value in third_party.items()}
+                for contact, third_party in data.get("contact_third_parties", {}).items()
+                if isinstance(third_party, dict)
             },
             value_maps={
                 str(map_name): {str(source): str(target) for source, target in values.items()}

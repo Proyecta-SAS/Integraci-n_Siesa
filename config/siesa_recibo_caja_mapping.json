@@ -2,6 +2,13 @@
   "connector_id": "142888",
   "operation": "API_v1_ReciboCaja",
   "required_transaction_type": "Ingreso",
+  "contact_third_parties": {
+    "Consumidor Final": {
+      "identity_number": "222222222222",
+      "identity_type": "NIT",
+      "first_name": "Consumidor Final"
+    }
+  },
   "sheet_columns": {
     "bank_account": [
       "Cuenta bancaria",
@@ -11,6 +18,7 @@
       "Fecha"
     ],
     "contact": [
+      "Contacto Alegra",
       "Contacto"
     ],
     "transaction_type": [
@@ -52,6 +60,7 @@
       "Tipo de identificacion"
     ],
     "identity_number": [
+      "Tercero Siesa",
       " Número de identificación *",
       "Numero de identificacion",
       "Número de identificación *"
@@ -149,9 +158,8 @@
       "format": "integer_8"
     },
     "Caja.0.F358_ID_MEDIOS_PAGO": {
-      "source": "payment",
-      "field": "payment_method",
-      "map": "siesa_payment_methods"
+      "source": "literal",
+      "value": "EFE"
     },
     "Caja.0.F358_VALOR": {
       "source": "payment",
@@ -457,6 +465,8 @@
     "siesa_payment_methods": {
       "consignacion": "EFE",
       "consignación": "EFE",
+      "consinacion": "EFE",
+      "consinaciÃ³n": "EFE",
       "transferencia": "EFE"
     }
   }

@@ -417,8 +417,8 @@ async function preflight() {
   });
 }
 
-async function sendQa() {
-  await withBusy(sendButton, "Enviando...", async () => {
+async function activateSiesa() {
+  await withBusy(sendButton, "Activando...", async () => {
     const status = await api("/api/status");
     if (!status.runtime.connector_url_configured) {
       const error = {
@@ -459,33 +459,28 @@ async function sendQa() {
       setResult("Espere antes de reenviar", error.error, [formatCooldown(error.retry_after_seconds)], "warn");
       return;
     }
-    const rowsData = await api("/api/payments?limit=50");
-    const missingCrossRows = rowsData.rows.filter((row) => !row.cross_ready).map((row) => row.source_row);
-    if (missingCrossRows.length && !isOtherIncomeMode(status.runtime.application_mode)) {
+    const preflightData = await api("/api/preflight?limit=100");
+    const preflight = preflightData.preflight;
+    if (!preflight.ready) {
       const error = {
         ok: false,
-        error: "Faltan datos de documento cruce en Sheets o variables SIESA_* de respaldo.",
-        rows: missingCrossRows,
+        error: "El lote tiene filas pendientes de corregir; no se enviara parcialmente.",
+        rows: preflight.invalid_rows,
       };
       writeJson(resultOutput, error);
-      setResult("Faltan cruces", "Completa el documento cruce de las filas marcadas.", [`Filas: ${missingCrossRows.join(", ")}`], "warn");
-      renderRows(rowsData.rows);
+      setResult(
+        "Lote sin activar",
+        "Corrige las filas marcadas como Revisar antes de crear recibos.",
+        error.rows.length ? [`Filas: ${error.rows.join(", ")}`] : ["Revisa la configuracion antes de activar."],
+        "warn",
+      );
+      renderRows(preflightData.rows);
       return;
     }
-    const selected = window.prompt("Indica el numero de la unica fila de Sheets que autorizas enviar a Siesa.");
-    if (selected === null) {
+    if (!window.confirm(`Se crearan ${preflight.ready_rows} recibo(s) real(es) por ${formatMoney(preflight.total_ready_amount)}. Los ya enviados se omitiran. Continuar?`)) {
       return;
     }
-    const sourceRow = Number.parseInt(selected, 10);
-    const selectedRow = rowsData.rows.find((row) => row.source_row === sourceRow);
-    if (!Number.isInteger(sourceRow) || !selectedRow || !selectedRow.ready) {
-      setResult("Fila no autorizada", "Selecciona una fila valida y lista para enviar.", [], "warn");
-      return;
-    }
-    if (!window.confirm(`Se creara un recibo real para la fila ${sourceRow} por ${formatMoney(selectedRow.amount)}. Continuar?`)) {
-      return;
-    }
-    const data = await api(`/api/sync/send?source_row=${sourceRow}`, { method: "POST" });
+    const data = await api("/api/sync/send", { method: "POST" });
     writeJson(resultOutput, data);
     await summarizeSyncResult(data, "send");
     await loadRows(false);
@@ -509,4 +504,4 @@ backButton.addEventListener("click", showLauncher);
 loadRowsButton.addEventListener("click", loadRows);
 preflightButton.addEventListener("click", preflight);
 dryRunButton.addEventListener("click", dryRun);
-sendButton.addEventListener("click", sendQa);
+sendButton.addEventListener("click", activateSiesa);

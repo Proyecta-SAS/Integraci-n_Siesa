@@ -37,6 +37,15 @@ def _row_to_canonical(
                 value = row[position]
                 break
         canonical[field_name] = value
+
+    # La hoja verde solo contiene el nombre comercial del contacto.  Para los
+    # contactos ya homologados, Siesa debe recibir su tercero, no el ID de
+    # Alegra que pueda existir en columnas posteriores de la misma hoja.
+    contact_key = normalize_header(str(canonical.get("contact", "")))
+    for configured_contact, third_party in mapping.contact_third_parties.items():
+        if normalize_header(configured_contact) == contact_key:
+            canonical.update(third_party)
+            break
     return PaymentRow.from_raw(canonical, source_row=source_row)
 
 

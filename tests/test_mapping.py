@@ -7,6 +7,7 @@ from unittest.mock import patch
 from siesa_payments.config import MappingConfig
 from siesa_payments.mapper import build_payload
 from siesa_payments.source import read_csv_text
+from siesa_payments.validation import PaymentValidator
 
 
 class MappingTests(TestCase):
@@ -26,6 +27,19 @@ class MappingTests(TestCase):
         self.assertEqual(len(payments), 1)
         self.assertEqual(payments[0].identity_number, "52833138")
         self.assertEqual(str(payments[0].amount), "480000")
+
+    def test_consumidor_final_uses_siesa_third_party_from_green_columns(self) -> None:
+        csv_text = (
+            "Cuenta bancaria,Fecha,Contacto,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,Nota,Observaciones\n"
+            "BANCOLOMBIA,03/09/2026,Consumidor Final,Ingreso,Consignacion,28050505 ANTICIPO POR IDENTIFICAR,1,2000,Prueba,Prueba\n"
+        )
+
+        payment = read_csv_text(csv_text, self.mapping)[0]
+        payload = build_payload(payment, self.mapping)
+
+        self.assertEqual(payment.identity_number, "222222222222")
+        self.assertEqual(PaymentValidator(self.mapping.required_transaction_type).validate(payment), [])
+        self.assertEqual(payload["RCyotrosingresos"][0]["F350_ID_TERCERO"], "222222222222")
 
     def test_builds_sectioned_payload_for_connector_142888(self) -> None:
         payment = read_csv_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), self.mapping)[0]
