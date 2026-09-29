@@ -124,9 +124,8 @@ function readableSiesaResponse(value) {
   return shortValue(parts.length ? parts.join(" | ") : JSON.stringify(value));
 }
 
-async function latestFailureItems() {
-  const data = await api("/api/audit?event=failed&limit=10");
-  return (data.events || []).map((event) => {
+function currentFailureItems(events) {
+  return (events || []).map((event) => {
     const row = event.source_row ? `Fila ${event.source_row}` : "Fila sin numero";
     const status = event.siesa_status_code ? `HTTP ${event.siesa_status_code}` : "Siesa";
     const amount = event.amount ? formatMoney(event.amount) : "valor sin dato";
@@ -229,20 +228,16 @@ async function summarizeSyncResult(data, mode) {
   }
 
   if (mode === "send" && failed > 0) {
-    let items = [
+    const items = [
       `Procesadas: ${processed}`,
       `Enviadas: ${sent}`,
       `Fallidas: ${failed}`,
       `Invalidas antes de enviar: ${invalid}`,
       `Duplicadas: ${skipped}`,
     ];
-    try {
-      const failureItems = await latestFailureItems();
-      if (failureItems.length) {
-        items = items.concat(failureItems);
-      }
-    } catch (error) {
-      items.push(`No se pudo leer el detalle del log: ${error.message}`);
+    const failureItems = currentFailureItems(result.failures);
+    if (failureItems.length) {
+      items.push(...failureItems);
     }
     setResult(
       "Siesa rechazo el envio",

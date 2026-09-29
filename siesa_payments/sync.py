@@ -22,6 +22,7 @@ class SyncResult:
     skipped_duplicates: int = 0
     invalid: int = 0
     failed: int = 0
+    failures: tuple[dict[str, Any], ...] = ()
 
 
 class SendCooldownError(PermissionError):
@@ -164,6 +165,7 @@ class PaymentSyncService:
             "invalid": 0,
             "failed": 0,
         }
+        failures: list[dict[str, Any]] = []
 
         for payment in iter_payments(self.runtime.input_csv, self.runtime.sheets_csv_url, self.mapping):
             if source_rows is not None and payment.source_row not in source_rows:
@@ -196,19 +198,26 @@ class PaymentSyncService:
                 self.log.write(_event("sent", payment, payload=payload, flow=flow, siesa_response=response.data))
             else:
                 counters["failed"] += 1
-                self.log.write(
-                    _event(
-                        "failed",
-                        payment,
-                        payload=payload,
-                        flow=flow,
-                        siesa_status_code=response.status_code,
-                        siesa_response=response.data,
-                    )
+                event = _event(
+                    "failed",
+                    payment,
+                    payload=payload,
+                    flow=flow,
+                    siesa_status_code=response.status_code,
+                    siesa_response=response.data,
+                )
+                self.log.write(event)
+                failures.append(
+                    {
+                        "source_row": payment.source_row,
+                        "amount": str(payment.amount),
+                        "siesa_status_code": response.status_code,
+                        "siesa_response": response.data,
+                    }
                 )
 
         self.state.save()
-        return SyncResult(**counters)
+        return SyncResult(**counters, failures=tuple(failures))
 
 
 def format_issues(issues: list[ValidationIssue]) -> str:
