@@ -52,7 +52,16 @@ def runtime_for(tmp_path: Path, csv_path: Path, dry_run: bool) -> RuntimeConfig:
 class SyncTests(TestCase):
     def setUp(self) -> None:
         self.mapping = MappingConfig.load(Path("config/siesa_recibo_caja_mapping.json"))
-        self.env = patch.dict('os.environ', {'SIESA_ID_MEDIO_PAGO_CONSIGNACION': 'CONSIG_PRUEBA', 'SIESA_ID_FE': '1103'})
+        self.env = patch.dict(
+            'os.environ',
+            {
+                'SIESA_ID_MEDIO_PAGO_CONSIGNACION': 'CONSIG_PRUEBA',
+                'SIESA_ID_BANCO': '001',
+                'SIESA_NRO_CUENTA': '30000003697',
+                'SIESA_DOCTO_BANCO_CG': 'CG',
+                'SIESA_ID_FE': '1103',
+            },
+        )
         self.env.start()
 
     def tearDown(self) -> None:

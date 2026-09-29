@@ -38,6 +38,12 @@ def _validate_send_payload(payload: dict[str, Any]) -> None:
     missing: list[str] = []
     if not str(caja.get("F358_ID_MEDIOS_PAGO") or "").strip():
         missing.append("SIESA_ID_MEDIO_PAGO_CONSIGNACION")
+    if not str(caja.get("F358_ID_BANCO") or "").strip():
+        missing.append("SIESA_ID_BANCO")
+    if not str(caja.get("F358_NRO_CUENTA") or "").strip():
+        missing.append("SIESA_NRO_CUENTA")
+    if not str(caja.get("f358_docto_banco_cg") or "").strip():
+        missing.append("SIESA_DOCTO_BANCO_CG")
     if not str(receipt.get("F357_ID_FE") or "").strip():
         missing.append("SIESA_ID_FE")
     if missing:
