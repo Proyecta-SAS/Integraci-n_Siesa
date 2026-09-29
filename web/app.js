@@ -68,6 +68,14 @@ function isOtherIncomeMode(mode = currentApplicationMode) {
   return ["otros_ingresos", "otro_ingreso", "anticipo", "anticipo_por_identificar"].includes(mode);
 }
 
+function isProduction(runtime = {}) {
+  return ["prod", "production"].includes(String(runtime.environment || "").trim().toLowerCase());
+}
+
+function environmentLabel(runtime = {}) {
+  return isProduction(runtime) ? "Producción" : "QA";
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -136,30 +144,31 @@ function currentFailureItems(events) {
 function updateStatusSummary(runtime) {
   const missingCount = (runtime.missing_send_env || []).length;
   const cooldown = runtime.cooldown || {};
+  const environment = environmentLabel(runtime);
   currentApplicationMode = runtime.application_mode || "cartera";
   if (runtime.activator?.sheet_name) {
     sourceLabel.textContent = `Google Sheets / ${runtime.activator.sheet_name}`;
   }
   const otherIncome = isOtherIncomeMode();
   envPill.textContent = otherIncome
-    ? `${String(runtime.environment || "QA").toUpperCase()} · 28050505`
-    : String(runtime.environment || "QA").toUpperCase();
+    ? `${environment.toUpperCase()} · 28050505`
+    : environment.toUpperCase();
   crossHeader.textContent = otherIncome ? "Otros ingresos" : "Cruce";
 
   connectionStatus.textContent = runtime.ready_to_send ? "Configurado" : "Incompleto";
   connectionStatus.dataset.tone = runtime.ready_to_send ? "ok" : "warn";
   connectionHint.textContent = runtime.ready_to_send
     ? otherIncome
-      ? "QA tiene datos base. Flujo: otros ingresos 28050505."
-      : "QA tiene URL, credenciales y datos base."
+      ? `${environment} tiene datos base. Flujo: otros ingresos 28050505.`
+      : `${environment} tiene URL, credenciales y datos base.`
     : `Faltan ${missingCount} dato(s) para enviar.`;
 
   if (runtime.send_unlocked && !cooldown.cooldown_active) {
     sendStatusMetric.textContent = "Permitido";
     sendStatusMetric.dataset.tone = "warn";
     sendHint.textContent = otherIncome
-      ? "Enviar QA creara recibos por otros ingresos."
-      : "Enviar QA creara recibos reales en pruebas.";
+      ? `Enviar en ${environment} creará recibos por otros ingresos.`
+      : `Enviar en ${environment} creará recibos reales.`;
     return;
   }
 
@@ -191,6 +200,7 @@ function updateRowsSummary(rows = []) {
 
 async function summarizeSyncResult(data, mode) {
   const result = data.result || data;
+  const environment = environmentLabel(data.runtime);
   const failed = Number(result.failed || 0);
   const invalid = Number(result.invalid || 0);
   const sent = Number(result.sent || 0);
@@ -200,8 +210,8 @@ async function summarizeSyncResult(data, mode) {
 
   if (mode === "send" && sent > 0 && failed === 0 && invalid === 0) {
     setResult(
-      "Envio QA exitoso",
-      `Siesa recibio ${sent} recibo(s) de caja. Ahora valida el consecutivo en Siesa QA.`,
+      `Envío a ${environment} exitoso`,
+      `Siesa recibió ${sent} recibo(s) de caja. Ahora valida el consecutivo en Siesa.`,
       [
         `Filas procesadas: ${processed}`,
         `Recibos enviados: ${sent}`,
@@ -215,7 +225,7 @@ async function summarizeSyncResult(data, mode) {
 
   if (mode === "dry-run" && dryRun > 0 && failed === 0 && invalid === 0) {
     setResult(
-      "Prueba QA correcta",
+      "Simulación correcta",
       `El sistema puede armar ${dryRun} recibo(s) sin crear nada en Siesa.`,
       [
         `Filas procesadas: ${processed}`,
@@ -284,7 +294,7 @@ async function withBusy(button, label, action) {
     await action();
   } catch (error) {
     writeJson(resultOutput, { ok: false, error: error.message });
-    setResult("No se pudo completar", error.message, ["Valida configuracion, fila de Sheets o disponibilidad de Siesa QA."], "warn");
+    setResult("No se pudo completar", error.message, ["Valida configuración, fila de Sheets o disponibilidad de Siesa."], "warn");
   } finally {
     button.disabled = false;
     button.firstChild.textContent = original;
@@ -297,13 +307,13 @@ async function loadStatus() {
   updateStatusSummary(data.runtime);
   const otherIncome = isOtherIncomeMode(data.runtime.application_mode);
   if (!data.runtime.connector_url_configured) {
-    const message = "Pendiente: copia la Request URL del conector en SIESA_CONNECTOR_URL. El path generico respondio 405 en QA.";
+    const message = "Pendiente: copia la Request URL del conector en SIESA_CONNECTOR_URL. El path genérico respondió 405.";
     resultOutput.textContent = message;
     setResult("Configuracion pendiente", "Falta la URL exacta del conector de Siesa.", [message], "warn");
     return;
   }
   if (data.runtime.missing_send_env?.length) {
-    const message = `Pendiente: completa ${data.runtime.missing_send_env.join(", ")} antes de enviar QA.`;
+    const message = `Pendiente: completa ${data.runtime.missing_send_env.join(", ")} antes de enviar en ${environmentLabel(data.runtime)}.`;
     resultOutput.textContent = message;
     setResult("Configuracion pendiente", "Faltan datos operativos para crear recibos.", data.runtime.missing_send_env, "warn");
     return;
@@ -433,7 +443,7 @@ async function activateSiesa() {
     if (!status.runtime.ready_to_send) {
       const error = {
         ok: false,
-        error: "Faltan datos operativos antes de enviar QA.",
+        error: `Faltan datos operativos antes de enviar en ${environmentLabel(status.runtime)}.`,
         missing: status.runtime.missing_send_env,
       };
       writeJson(resultOutput, error);
