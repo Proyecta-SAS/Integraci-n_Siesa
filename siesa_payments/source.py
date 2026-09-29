@@ -26,7 +26,7 @@ def _build_header_index(headers: list[str]) -> dict[str, int]:
 
 def _row_to_canonical(
     headers: list[str], row: list[str], mapping: MappingConfig, source_row: int
-) -> PaymentRow:
+) -> PaymentRow | None:
     header_index = _build_header_index(headers)
     canonical: dict[str, Any] = {}
     for field_name, aliases in mapping.sheet_columns.items():
@@ -37,6 +37,25 @@ def _row_to_canonical(
                 value = row[position]
                 break
         canonical[field_name] = value
+
+    # A Google Sheet may retain values in optional accounting columns after an
+    # operator clears the actual payment cells.  Those rows are not receipts:
+    # attempting to parse them (notably their empty date) would otherwise
+    # prevent every valid row below from being displayed or sent.
+    operational_fields = (
+        "bank_account",
+        "payment_date",
+        "contact",
+        "transaction_type",
+        "payment_method",
+        "concept",
+        "quantity",
+        "amount",
+        "note",
+        "observations",
+    )
+    if not any(str(canonical.get(field_name, "")).strip() for field_name in operational_fields):
+        return None
 
     # La hoja verde solo contiene el nombre comercial del contacto.  Para los
     # contactos ya homologados, Siesa debe recibir su tercero, no el ID de
@@ -60,7 +79,9 @@ def read_csv_text(csv_text: str, mapping: MappingConfig) -> list[PaymentRow]:
     for row_number, row in enumerate(reader, start=2):
         if not any(cell.strip() for cell in row):
             continue
-        payments.append(_row_to_canonical(headers, row, mapping, row_number))
+        payment = _row_to_canonical(headers, row, mapping, row_number)
+        if payment is not None:
+            payments.append(payment)
     return payments
 
 

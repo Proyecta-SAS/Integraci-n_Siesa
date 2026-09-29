@@ -33,6 +33,21 @@ class MappingTests(TestCase):
         self.assertEqual(payments[0].identity_number, "52833138")
         self.assertEqual(str(payments[0].amount), "480000")
 
+    def test_ignores_residual_cross_only_rows_before_valid_payment(self) -> None:
+        csv_text = (
+            "Fecha,Contacto,Valor,Documento cruce,C.O. cruce\n"
+            ",,,FVE-00000006-0,001\n"
+            ",,,FVE-00000006-0,001\n"
+            "13/09/2026,Consumidor Final,4100,,\n"
+        )
+
+        payments = read_csv_text(csv_text, self.mapping)
+
+        self.assertEqual(len(payments), 1)
+        self.assertEqual(payments[0].source_row, 4)
+        self.assertEqual(payments[0].payment_date.isoformat(), "2026-09-13")
+        self.assertEqual(str(payments[0].amount), "4100")
+
     def test_consumidor_final_uses_siesa_third_party_from_green_columns(self) -> None:
         csv_text = (
             "Cuenta bancaria,Fecha,Contacto,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,Nota,Observaciones\n"
