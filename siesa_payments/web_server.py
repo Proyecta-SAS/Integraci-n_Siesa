@@ -178,7 +178,7 @@ def _siesa_cross_auxiliary(payment: Any) -> str:
     return payment.cross_auxiliary or os.getenv("SIESA_AUXILIAR_DOCTO_CRUCE", "")
 
 
-def inspect_rows(limit: int = 25, activator: str = "alianza") -> dict[str, Any]:
+def inspect_rows(limit: int | None = None, activator: str = "alianza") -> dict[str, Any]:
     runtime = _runtime_for_request(dry_run=True, activator=activator)
     mapping = MappingConfig.load(runtime.mapping_file)
     validator = PaymentValidator(mapping.required_transaction_type)
@@ -217,12 +217,12 @@ def inspect_rows(limit: int = 25, activator: str = "alianza") -> dict[str, Any]:
                 "issues": row_issues,
             }
         )
-        if len(rows) >= limit:
+        if limit is not None and len(rows) >= limit:
             break
     return {"runtime": _redacted_runtime(runtime, activator), "count": len(rows), "rows": rows}
 
 
-def preflight(limit: int = 100, activator: str = "alianza") -> dict[str, Any]:
+def preflight(limit: int | None = None, activator: str = "alianza") -> dict[str, Any]:
     inspected = inspect_rows(limit=limit, activator=activator)
     rows = inspected["rows"]
     total_amount = Decimal("0")
@@ -318,6 +318,17 @@ def _source_row_from_query(parsed: Any) -> int | None:
     return source_row
 
 
+def _optional_limit(params: dict[str, list[str]]) -> int | None:
+    """Return a positive explicit limit, or no limit when it is omitted."""
+    raw_value = params.get("limit", [None])[0]
+    if raw_value is None or raw_value.strip().lower() in {"", "0", "all"}:
+        return None
+    limit = int(raw_value)
+    if limit < 1:
+        raise ValueError("limit debe ser un entero positivo, 0 o all")
+    return limit
+
+
 def _activator_from_query(parsed: Any) -> str:
     return parse_qs(parsed.query).get("activator", ["alianza"])[0]
 
@@ -335,12 +346,12 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/payments":
                 params = parse_qs(parsed.query)
-                limit = int(params.get("limit", ["25"])[0])
+                limit = _optional_limit(params)
                 self._json({"ok": True, **inspect_rows(limit=limit, activator=activator)})
                 return
             if parsed.path == "/api/preflight":
                 params = parse_qs(parsed.query)
-                limit = int(params.get("limit", ["100"])[0])
+                limit = _optional_limit(params)
                 self._json({"ok": True, **preflight(limit=limit, activator=activator)})
                 return
             if parsed.path == "/api/audit":

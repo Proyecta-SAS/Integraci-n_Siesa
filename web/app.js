@@ -377,7 +377,7 @@ function renderRows(rows) {
 
 async function loadRows(announce = true) {
   await withBusy(loadRowsButton, "Leyendo...", async () => {
-    const data = await api("/api/payments?limit=50");
+    const data = await api("/api/payments");
     renderRows(data.rows);
     writeJson(resultOutput, { ok: true, action: "payments", count: data.count });
     if (!announce) {
@@ -406,7 +406,7 @@ async function dryRun() {
 
 async function preflight() {
   await withBusy(preflightButton, "Revisando...", async () => {
-    const data = await api("/api/preflight?limit=100");
+    const data = await api("/api/preflight");
     renderRows(data.rows);
     writeJson(resultOutput, data.preflight);
     const preflight = data.preflight;
@@ -470,7 +470,7 @@ async function activateSiesa() {
       setResult("Espere antes de reenviar", error.error, [formatCooldown(error.retry_after_seconds)], "warn");
       return;
     }
-    const preflightData = await api("/api/preflight?limit=100");
+    const preflightData = await api("/api/preflight");
     const preflight = preflightData.preflight;
     if (!preflight.ready) {
       const error = {
