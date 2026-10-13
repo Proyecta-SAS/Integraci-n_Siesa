@@ -68,6 +68,11 @@ def _apply_value_map(value: Any, rule: dict[str, Any], mapping: MappingConfig) -
 
 def _apply_format(value: Any, rule: dict[str, Any]) -> Any:
     value_format = rule.get("format")
+    if value_format == "receipt_reference_20":
+        # Siesa's numeric conversion can interpret hexadecimal E/D sequences
+        # as exponents. A nonnumeric prefix prevents that interpretation;
+        # the full payment key remains unchanged for deduplication.
+        return "RC" + str(value)[:18]
     if value_format == "decimal_signed_21":
         return format_decimal_signed(parse_decimal(value))
     if isinstance(value_format, str) and value_format.startswith("integer_"):

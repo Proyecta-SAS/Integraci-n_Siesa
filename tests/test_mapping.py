@@ -80,6 +80,42 @@ class MappingTests(TestCase):
         self.assertEqual(payload["CxC"][0]["F354_VALOR_CR"], "+000000000480000.0000")
         self.assertEqual(payload["CxC"][0]["F353_NRO_CUOTA_CRUCE"], "000")
 
+    def test_receipt_reference_avoids_overflow_for_rejected_payment_keys(self) -> None:
+        payment = read_csv_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), self.mapping)[0]
+        # References from the nine rejected receipts on 2026-10-01. Numeric
+        # conversion interprets their E/D characters as exponent markers.
+        rejected_references = (
+            "90e6814700dc3635cc61",
+            "80d95196bf19102b55fe",
+            "6d04413264b0db76aac2",
+            "83d404d8e2b09eb7841a",
+            "730d8bfc7651523d7216",
+            "507d08df5ef8063bf8a3",
+            "520d80f5d1e47dc5e613",
+            "48d01767336950dc4241",
+            "69503d5963acaaefebbe",
+        )
+
+        for old_reference in rejected_references:
+            with self.subTest(reference=old_reference), patch.object(
+                type(payment), "idempotency_key", return_value=old_reference + "0" * 12
+            ):
+                reference = build_payload(payment, self.mapping)["RCyotrosingresos"][0]["F357_REFERENCIA"]
+
+                self.assertRegex(reference, r"^RC[0-9a-f]{18}$")
+
+    def test_receipt_reference_is_stable_and_separate_from_payment_key(self) -> None:
+        payment = read_csv_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), self.mapping)[0]
+        original_key = payment.idempotency_key()
+
+        first = build_payload(payment, self.mapping)["RCyotrosingresos"][0]["F357_REFERENCIA"]
+        second = build_payload(payment, self.mapping)["RCyotrosingresos"][0]["F357_REFERENCIA"]
+
+        self.assertEqual(first, second)
+        self.assertRegex(first, r"^RC[0-9a-f]{18}$")
+        self.assertEqual(payment.idempotency_key(), original_key)
+        self.assertEqual(len(original_key), 32)
+
     def test_reads_cross_document_from_single_sheet_column(self) -> None:
         csv_text = (
             "Cuenta bancaria,Fecha,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,"

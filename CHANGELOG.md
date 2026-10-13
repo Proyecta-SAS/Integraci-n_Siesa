@@ -1,5 +1,11 @@
 # Changelog
 
+## Referencia de recibo - 2026-10-13
+
+- Cambia `F357_REFERENCIA` a `RC` seguido de 18 caracteres de la llave del pago, respetando el limite de 20 caracteres y evitando interpretaciones numericas de secuencias `E`/`D` que reproducen `Overflow`.
+- Conserva la llave completa de 32 caracteres en el estado, la bitacora y el header `Idempotency-Key`; los pagos previamente enviados siguen omitiendose.
+- Agrega pruebas con las referencias de los nueve rechazos del 1 de octubre y con estado de pagos enviados antes del ajuste.
+
 ## 0.16.0 - 2026-09-11
 
 - Cambia el flujo principal a `SIESA_RECIBO_FLUJO=otros_ingresos`.

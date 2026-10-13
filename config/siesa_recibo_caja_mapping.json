@@ -370,7 +370,7 @@
     },
     "RCyotrosingresos.0.F357_REFERENCIA": {
       "source": "idempotency_key",
-      "format": "max_20"
+      "format": "receipt_reference_20"
     },
     "RCyotrosingresos.0.F357_IND_VALIDA_MEDPAGO": {
       "source": "env",
