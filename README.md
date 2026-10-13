@@ -1,6 +1,6 @@
 # Integracion Siesa - Recibos de Caja
 
-Version actual: **v0.18.0**. La version desplegada se consulta en `/health` o
+Version actual: **v0.1.1**. La version desplegada se consulta en `/health` o
 `/api/status`. Esta version corrige la referencia de los recibos para evitar
 desbordamientos numericos y conserva las llaves existentes de deduplicacion.
 
