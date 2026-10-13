@@ -84,19 +84,6 @@ La parametrizacion de recibos de caja de Siesa indica que varios valores son obl
 - Montos aceptan formato colombiano (`480.000`) y decimal (`480000.50`).
 - Cada pago genera `externalReference` e `Idempotency-Key` para evitar duplicados.
 
-### Referencia del recibo y control de duplicados
-
-`F357_REFERENCIA` se envia como `RC` seguido de los primeros 18 caracteres de la
-llave del pago: 20 caracteres en total. El prefijo evita que una conversion
-numerica interprete las letras `E` o `D` del hash como exponentes y produzca
-`Overflow`. La llave completa de 32 caracteres sigue usandose en el estado,
-la bitacora y el header `Idempotency-Key`, por lo que este ajuste no requiere
-migrar el estado de los recibos ya enviados.
-
-Las pruebas locales cubren las referencias de los nueve rechazos del 1 de
-octubre. La aceptacion del nuevo formato debe confirmarse con una prueba
-controlada en Siesa antes de reenviar pagos rechazados.
-
 ## Ajuste del contrato final
 
 `config/siesa_recibo_caja_mapping.json` define el payload enviado a Siesa HUB. El Body real levantado desde el Documentador usa estas secciones:

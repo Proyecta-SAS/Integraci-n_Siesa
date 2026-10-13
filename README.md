@@ -1,9 +1,5 @@
 # Integracion Siesa - Recibos de Caja
 
-Version actual: **v0.1.1**. La version desplegada se consulta en `/health` o
-`/api/status`. Esta version corrige la referencia de los recibos para evitar
-desbordamientos numericos y conserva las llaves existentes de deduplicacion.
-
 Servicio para registrar automaticamente en Siesa HUB los pagos de clientes que llegan a una hoja operativa de Avanzar. El destino operativo confirmado para este flujo es `Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos`.
 
 ## Hoja operativa compartida
