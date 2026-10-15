@@ -61,6 +61,9 @@ class RuntimeConfig:
     siesa_id_documento: str
     siesa_nombre_documento: str
     hub_execute_path: str
+    sheets_writeback_enabled: bool = False
+    sheets_webhook_url: str | None = None
+    sheets_webhook_token: str | None = None
 
     @classmethod
     def from_env(cls) -> "RuntimeConfig":
@@ -87,6 +90,9 @@ class RuntimeConfig:
             siesa_id_documento=os.getenv("SIESA_ID_DOCUMENTO", "142888"),
             siesa_nombre_documento=os.getenv("SIESA_NOMBRE_DOCUMENTO", "API_v1_ReciboCaja"),
             hub_execute_path=os.getenv("SIESA_HUB_EXECUTE_PATH", "/apisestandar/v3/conectoresimportar"),
+            sheets_writeback_enabled=_env_bool("SIESA_SHEETS_WRITEBACK_ENABLED", False),
+            sheets_webhook_url=os.getenv("SIESA_SHEETS_WEBHOOK_URL") or None,
+            sheets_webhook_token=os.getenv("SIESA_SHEETS_WEBHOOK_TOKEN") or None,
         )
 
 

@@ -127,7 +127,12 @@ class SiesaHubClient:
             data = json.loads(raw) if raw else {}
         except json.JSONDecodeError:
             data = {"raw": raw}
-        return SiesaResponse(status_code=status, ok=200 <= status < 300, data=data, raw_body=raw)
+        ok = 200 <= status < 300
+        # Siesa can report an import rejection in a successful HTTP response.
+        # The validated connector uses codigo=0 for an accepted import.
+        if isinstance(data, dict) and "codigo" in data:
+            ok = ok and str(data["codigo"]).strip() == "0"
+        return SiesaResponse(status_code=status, ok=ok, data=data, raw_body=raw)
 
     def connection_summary(self) -> dict[str, Any]:
         url = self._url()

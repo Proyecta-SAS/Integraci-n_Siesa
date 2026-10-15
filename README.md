@@ -37,7 +37,7 @@ Tambien quedan preparadas columnas de trazabilidad para resultado operativo:
 Estado Siesa, Recibo Siesa, Fecha envio, Respuesta Siesa, Error Siesa
 ```
 
-La app desplegada actualmente lee la hoja por export CSV. Para escribir automaticamente esos resultados de vuelta al Sheet se debe conectar una credencial de escritura, por ejemplo service account de Google Sheets o un webhook de Apps Script.
+La integracion lee la hoja por export CSV y puede escribir los resultados en la misma pestana mediante el webhook incluido en `scripts/sheets_writeback.gs`. Los estados son `Pendiente`, `Pendiente por corregir` y `Cargado`. La escritura se habilita con `SIESA_SHEETS_WRITEBACK_ENABLED=true` despues de configurar el webhook; las simulaciones nunca escriben en la hoja. Consulte [configuracion y comportamiento de estados](docs/estados_sheets.md).
 
 La pestana `ID` funciona como catalogo de seleccion de la hoja. Para Siesa se deja el mapeo final en `config/siesa_recibo_caja_mapping.json` porque los codigos contables/documentales del conector 142888 dependen de la parametrizacion del ERP.
 

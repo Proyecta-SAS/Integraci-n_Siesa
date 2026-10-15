@@ -97,6 +97,8 @@ def _redacted_runtime(runtime: RuntimeConfig, activator: str = "alianza") -> dic
         "source": "input_csv" if runtime.input_csv else "google_sheets_csv" if runtime.sheets_csv_url else "missing",
         "input_csv": runtime.input_csv,
         "sheets_csv_url_configured": bool(runtime.sheets_csv_url),
+        "sheets_writeback_enabled": runtime.sheets_writeback_enabled,
+        "sheets_writeback_configured": bool(runtime.sheets_webhook_url and runtime.sheets_webhook_token),
         "mapping_file": str(runtime.mapping_file),
         "hub_base_url": runtime.hub_base_url,
         "connector_url_configured": bool(runtime.siesa_connector_url),

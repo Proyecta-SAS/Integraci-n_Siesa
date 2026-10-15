@@ -41,6 +41,9 @@ def _load_runtime(args: argparse.Namespace) -> RuntimeConfig:
         siesa_id_documento=args.id_documento or runtime.siesa_id_documento,
         siesa_nombre_documento=args.nombre_documento or runtime.siesa_nombre_documento,
         hub_execute_path=args.execute_path or runtime.hub_execute_path,
+        sheets_writeback_enabled=runtime.sheets_writeback_enabled,
+        sheets_webhook_url=runtime.sheets_webhook_url,
+        sheets_webhook_token=runtime.sheets_webhook_token,
     )
 
 
@@ -63,7 +66,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
     mapping = _load_mapping(runtime)
     result = PaymentSyncService(runtime, mapping).sync()
     print(json.dumps(asdict(result), indent=2, ensure_ascii=False))
-    return 0 if result.failed == 0 and result.invalid == 0 else 2
+    return 0 if result.failed == 0 and result.invalid == 0 and not result.sheet_errors else 2
 
 
 def cmd_validate_connector(args: argparse.Namespace) -> int:

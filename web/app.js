@@ -207,6 +207,21 @@ async function summarizeSyncResult(data, mode) {
   const dryRun = Number(result.dry_run || 0);
   const skipped = Number(result.skipped_duplicates || 0);
   const processed = Number(result.processed || 0);
+  const sheetErrors = result.sheet_errors || [];
+
+  if (sheetErrors.length) {
+    setResult(
+      "Hay estados pendientes de actualizar en Sheets",
+      `Recibos enviados a Siesa: ${sent}. Revisa las filas indicadas; los envios confirmados quedan guardados para evitar duplicarlos.`,
+      [
+        `Filas sin cargar: ${failed}`,
+        `Filas por corregir: ${invalid}`,
+        ...sheetErrors.map(item => `Fila ${item.source_row}: ${item.error}`),
+      ],
+      "warn",
+    );
+    return;
+  }
 
   if (mode === "send" && sent > 0 && failed === 0 && invalid === 0) {
     setResult(
@@ -250,8 +265,8 @@ async function summarizeSyncResult(data, mode) {
       items.push(...failureItems);
     }
     setResult(
-      "Siesa rechazo el envio",
-      `${failed} fila(s) llegaron al conector, pero Siesa no creo el recibo.`,
+      "Hay recibos pendientes de revisar",
+      `${failed} fila(s) no tienen una carga confirmada. Revisa el motivo antes de volver a intentar.`,
       items,
       "warn",
     );

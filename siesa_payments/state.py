@@ -22,8 +22,8 @@ class SyncState:
     def add(self, key: str) -> None:
         self._keys.add(key)
 
-    def get(self, key: str) -> Any:
-        return self._data.get(key)
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._data.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
         self._data[key] = value

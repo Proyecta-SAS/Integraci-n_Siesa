@@ -112,6 +112,7 @@ class PaymentRow:
     cross_branch: str
     cross_auxiliary: str
     source_row: int
+    source_cells: tuple[str, ...] = ()
 
     @classmethod
     def from_raw(cls, data: dict[str, Any], source_row: int) -> "PaymentRow":

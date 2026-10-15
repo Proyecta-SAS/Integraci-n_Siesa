@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 - 2026-10-15
+
+- Agrega escritura opcional en Google Sheets mediante un webhook de Apps Script, con estados `Pendiente`, `Pendiente por corregir` y `Cargado`, numero de recibo, fecha, respuesta y motivo del error.
+- Conserva inmediatamente cada envio confirmado y permite reparar su estado en Sheets sin reenviar el recibo. Las respuestas no confirmadas requieren conciliacion antes de reintentar.
+- Verifica la fila de origen antes de escribir, conserva las columnas operativas e historicas y usa la hoja correspondiente a cada activador.
+- Aisla las filas con fechas o valores invalidos y muestra los fallos de escritura en la consola y en la CLI. Las simulaciones no escriben en Sheets.
+- Reconoce los rechazos informados por Siesa con `codigo` distinto de cero, incluso cuando el HTTP es exitoso.
+- Incluye el webhook, su guia de configuracion y pruebas con transportes simulados y una hoja en memoria.
+
 ## 0.16.0 - 2026-09-11
 
 - Cambia el flujo principal a `SIESA_RECIBO_FLUJO=otros_ingresos`.

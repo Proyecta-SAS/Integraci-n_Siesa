@@ -3,7 +3,8 @@ from __future__ import annotations
 import csv
 import io
 import urllib.request
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,13 @@ from .models import PaymentRow, normalize_header
 
 class PaymentSourceError(RuntimeError):
     pass
+
+
+RowErrorHandler = Callable[[int, tuple[str, ...], str], None]
+
+
+def operational_cells(row: list[str]) -> tuple[str, ...]:
+    return tuple((row + [""] * 11)[:11])
 
 
 def _build_header_index(headers: list[str]) -> dict[str, int]:
@@ -65,10 +73,12 @@ def _row_to_canonical(
         if normalize_header(configured_contact) == contact_key:
             canonical.update(third_party)
             break
-    return PaymentRow.from_raw(canonical, source_row=source_row)
+    return replace(PaymentRow.from_raw(canonical, source_row=source_row), source_cells=operational_cells(row))
 
 
-def read_csv_text(csv_text: str, mapping: MappingConfig) -> list[PaymentRow]:
+def read_csv_text(
+    csv_text: str, mapping: MappingConfig, on_error: RowErrorHandler | None = None
+) -> list[PaymentRow]:
     reader = csv.reader(io.StringIO(csv_text))
     try:
         headers = next(reader)
@@ -79,31 +89,44 @@ def read_csv_text(csv_text: str, mapping: MappingConfig) -> list[PaymentRow]:
     for row_number, row in enumerate(reader, start=2):
         if not any(cell.strip() for cell in row):
             continue
-        payment = _row_to_canonical(headers, row, mapping, row_number)
+        try:
+            payment = _row_to_canonical(headers, row, mapping, row_number)
+        except ValueError as exc:
+            if on_error is None:
+                raise
+            on_error(row_number, operational_cells(row), str(exc))
+            continue
         if payment is not None:
             payments.append(payment)
     return payments
 
 
-def read_csv_file(path: Path, mapping: MappingConfig) -> list[PaymentRow]:
+def read_csv_file(
+    path: Path, mapping: MappingConfig, on_error: RowErrorHandler | None = None
+) -> list[PaymentRow]:
     if not path.exists():
         raise PaymentSourceError(f"archivo CSV no existe: {path}")
-    return read_csv_text(path.read_text(encoding="utf-8-sig"), mapping)
+    return read_csv_text(path.read_text(encoding="utf-8-sig"), mapping, on_error)
 
 
-def read_google_sheet_csv(url: str, mapping: MappingConfig, timeout: int = 30) -> list[PaymentRow]:
+def read_google_sheet_csv(
+    url: str, mapping: MappingConfig, timeout: int = 30, on_error: RowErrorHandler | None = None
+) -> list[PaymentRow]:
     request = urllib.request.Request(url, headers={"User-Agent": "siesa-payments/0.1"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         charset = response.headers.get_content_charset() or "utf-8"
         csv_text = response.read().decode(charset)
-    return read_csv_text(csv_text, mapping)
+    return read_csv_text(csv_text, mapping, on_error)
 
 
-def iter_payments(input_csv: str | None, sheets_csv_url: str | None, mapping: MappingConfig) -> Iterable[PaymentRow]:
+def iter_payments(
+    input_csv: str | None, sheets_csv_url: str | None, mapping: MappingConfig,
+    on_error: RowErrorHandler | None = None,
+) -> Iterable[PaymentRow]:
     if input_csv:
-        yield from read_csv_file(Path(input_csv), mapping)
+        yield from read_csv_file(Path(input_csv), mapping, on_error)
         return
     if sheets_csv_url:
-        yield from read_google_sheet_csv(sheets_csv_url, mapping)
+        yield from read_google_sheet_csv(sheets_csv_url, mapping, on_error=on_error)
         return
     raise PaymentSourceError("configure SIESA_INPUT_CSV o SIESA_SHEETS_CSV_URL")

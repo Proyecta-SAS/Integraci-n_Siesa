@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -10,6 +11,7 @@ from .mapper import build_payload
 from .models import PaymentRow
 from .siesa_hub import SiesaHubClient
 from .source import iter_payments
+from .sheets import LOADED, NEEDS_CORRECTION, PENDING, SheetStatusWriter, receipt_number, writer_for_runtime
 from .state import JsonlAuditLog, SyncState
 from .validation import PaymentValidator, ValidationIssue
 
@@ -23,6 +25,8 @@ class SyncResult:
     invalid: int = 0
     failed: int = 0
     failures: tuple[dict[str, Any], ...] = ()
+    sheet_updates: int = 0
+    sheet_errors: tuple[dict[str, Any], ...] = ()
 
 
 class SendCooldownError(PermissionError):
@@ -85,6 +89,7 @@ class PaymentSyncService:
         runtime: RuntimeConfig,
         mapping: MappingConfig,
         client: SiesaHubClient | None = None,
+        sheet_writer: SheetStatusWriter | None = None,
     ) -> None:
         self.runtime = runtime
         self.mapping = mapping
@@ -92,6 +97,7 @@ class PaymentSyncService:
         self.state = SyncState(runtime.state_file)
         self.log = JsonlAuditLog(runtime.log_file)
         self.client = client
+        self.sheet_writer = sheet_writer
 
     def _client(self) -> SiesaHubClient:
         if self.client is not None:
@@ -155,6 +161,7 @@ class PaymentSyncService:
         is_dry_run = self.runtime.dry_run if dry_run is None else dry_run
         if not is_dry_run and not self.runtime.allow_send:
             raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
+        writer = None if is_dry_run else self.sheet_writer or writer_for_runtime(self.runtime)
         if not is_dry_run:
             self._reserve_send_window()
         counters = {
@@ -166,36 +173,125 @@ class PaymentSyncService:
             "failed": 0,
         }
         failures: list[dict[str, Any]] = []
+        sheet_errors: list[dict[str, Any]] = []
+        sheet_updates = 0
 
-        for payment in iter_payments(self.runtime.input_csv, self.runtime.sheets_csv_url, self.mapping):
+        def write_status(row: int, cells: tuple[str, ...], status: str, **details: Any) -> bool:
+            nonlocal sheet_updates
+            if writer is None:
+                return True
+            try:
+                writer.write(row, cells, status, **details)
+                sheet_updates += 1
+                return True
+            except Exception as exc:
+                error = {"source_row": row, "status": status, "error": str(exc)}
+                sheet_errors.append(error)
+                self.log.write({**error, "timestamp": _now(), "status": "sheet_write_failed",
+                                "intended_status": status})
+                return False
+
+        def invalid_source(row: int, cells: tuple[str, ...], error: str) -> None:
+            if source_rows is not None and row not in source_rows:
+                return
+            counters["processed"] += 1
+            counters["invalid"] += 1
+            self.log.write({"timestamp": _now(), "status": "invalid", "source_row": row, "error": error})
+            write_status(row, cells, NEEDS_CORRECTION, error=error)
+
+        for payment in iter_payments(
+            self.runtime.input_csv, self.runtime.sheets_csv_url, self.mapping, on_error=invalid_source,
+        ):
             if source_rows is not None and payment.source_row not in source_rows:
                 continue
             counters["processed"] += 1
             flow = decide_flow(payment)
             key = payment.idempotency_key()
+            # A successful receipt stays successful even if its source cells
+            # later fail validation. Repair a missing Sheets result without sending.
+            if self.state.contains(key):
+                counters["skipped_duplicates"] += 1
+                self.log.write(_event("duplicate", payment, flow=flow))
+                saved = self.state.get("receipts", {}).get(key, {})
+                write_status(payment.source_row, payment.source_cells, LOADED, **saved)
+                continue
+
+            uncertain = self.state.get("uncertain_receipts", {}).get(key)
+            if uncertain:
+                counters["failed"] += 1
+                failures.append({"source_row": payment.source_row, "amount": str(payment.amount),
+                                 "siesa_status_code": None, "siesa_response": uncertain})
+                write_status(payment.source_row, payment.source_cells, PENDING, error=uncertain["error"])
+                continue
+
             issues = self.validator.validate(payment)
             if issues:
                 counters["invalid"] += 1
                 self.log.write(_event("invalid", payment, flow=flow, issues=[issue.__dict__ for issue in issues]))
-                continue
-            if self.state.contains(key):
-                counters["skipped_duplicates"] += 1
-                self.log.write(_event("duplicate", payment, flow=flow))
+                write_status(payment.source_row, payment.source_cells, NEEDS_CORRECTION, error=format_issues(issues))
                 continue
 
-            payload = build_payload(payment, self.mapping)
+            try:
+                payload = build_payload(payment, self.mapping)
+                if not is_dry_run:
+                    _validate_send_payload(payload)
+            except (ValueError, RuntimeError, PermissionError) as exc:
+                counters["invalid"] += 1
+                self.log.write(_event("invalid", payment, flow=flow, error=str(exc)))
+                write_status(payment.source_row, payment.source_cells, NEEDS_CORRECTION, error=str(exc))
+                continue
+
             if is_dry_run:
                 counters["dry_run"] += 1
                 self.log.write(_event("dry_run", payment, payload=payload, flow=flow))
                 continue
 
-            _validate_send_payload(payload)
+            try:
+                client = self._client()
+                client.connection_summary()
+            except RuntimeError as exc:
+                counters["invalid"] += 1
+                self.log.write(_event("invalid", payment, flow=flow, error=str(exc)))
+                write_status(payment.source_row, payment.source_cells, NEEDS_CORRECTION, error=str(exc))
+                continue
 
-            response = self._client().register_cash_receipt(self.mapping.connector_id, payload, key)
+            # Verify that the source row has not moved/changed before sending.
+            if not write_status(payment.source_row, payment.source_cells, PENDING):
+                counters["failed"] += 1
+                failures.append({"source_row": payment.source_row, "amount": str(payment.amount),
+                                 "siesa_status_code": None,
+                                 "siesa_response": {"error": "no se envio: no se pudo marcar Pendiente en Sheets"}})
+                continue
+
+            try:
+                response = client.register_cash_receipt(self.mapping.connector_id, payload, key)
+            except Exception:
+                # A timeout can happen after the ERP commits. Require checking
+                # Siesa before another attempt instead of risking a second receipt.
+                error = "Respuesta no confirmada; verificar en Siesa antes de reintentar."
+                uncertain_receipts = dict(self.state.get("uncertain_receipts", {}))
+                uncertain_receipts[key] = {"error": error, "timestamp": _now(), "source_row": payment.source_row}
+                self.state.set("uncertain_receipts", uncertain_receipts)
+                self.state.save()
+                counters["failed"] += 1
+                failures.append({"source_row": payment.source_row, "amount": str(payment.amount),
+                                 "siesa_status_code": None, "siesa_response": {"error": error}})
+                self.log.write(_event("unconfirmed", payment, flow=flow, error=error))
+                write_status(payment.source_row, payment.source_cells, PENDING, error=error)
+                continue
+
             if response.ok:
                 counters["sent"] += 1
                 self.state.add(key)
+                details = {"receipt": receipt_number(response.data), "sent_at": _now(), "response": response.data}
+                receipts = dict(self.state.get("receipts", {}))
+                receipts[key] = details
+                self.state.set("receipts", receipts)
+                # Persist BEFORE touching Sheets so an unavailable webhook cannot
+                # cause a successful receipt to be resent in the next activation.
+                self.state.save()
                 self.log.write(_event("sent", payment, payload=payload, flow=flow, siesa_response=response.data))
+                write_status(payment.source_row, payment.source_cells, LOADED, **details)
             else:
                 counters["failed"] += 1
                 event = _event(
@@ -207,6 +303,11 @@ class PaymentSyncService:
                     siesa_response=response.data,
                 )
                 self.log.write(event)
+                write_status(
+                    payment.source_row, payment.source_cells, NEEDS_CORRECTION,
+                    response=response.data,
+                    error=f"Siesa HTTP {response.status_code}: " + json.dumps(response.data, ensure_ascii=False),
+                )
                 failures.append(
                     {
                         "source_row": payment.source_row,
@@ -217,7 +318,8 @@ class PaymentSyncService:
                 )
 
         self.state.save()
-        return SyncResult(**counters, failures=tuple(failures))
+        return SyncResult(**counters, failures=tuple(failures), sheet_updates=sheet_updates,
+                          sheet_errors=tuple(sheet_errors))
 
 
 def format_issues(issues: list[ValidationIssue]) -> str:
