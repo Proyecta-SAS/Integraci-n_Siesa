@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 - 2026-10-19
+
+- Evita referencias de recibo que parezcan notacion cientifica en `F357_REFERENCIA`: usa el prefijo `RC` y 18 caracteres de la llave, dentro del limite de 20 caracteres.
+- Conserva sin cambios la llave idempotente completa, las referencias bancarias, los importes y el estado persistente de recibos confirmados.
+- Incluye pruebas con las diez llaves rechazadas por overflow el 19 de octubre y verifica que el cambio de referencia no reenvie recibos confirmados.
+- Expone la version en `/health` y `/api/status`, y conserva la fecha/hora de los eventos en `/api/audit` para diagnosticar incidentes por ejecucion.
+
 ## 0.2.1 - 2026-10-15
 
 - Agrega escritura opcional en Google Sheets mediante un webhook de Apps Script, con estados `Pendiente`, `Pendiente por corregir` y `Cargado`, numero de recibo, fecha, respuesta y motivo del error.

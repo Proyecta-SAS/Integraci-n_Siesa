@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from . import __version__
 from .config import MappingConfig, RuntimeConfig, load_env_file
 from .flow import decide_flow
 from .source import iter_payments
@@ -84,6 +85,7 @@ def _redacted_runtime(runtime: RuntimeConfig, activator: str = "alianza") -> dic
     )
     cooldown = PaymentSyncService(runtime, MappingConfig.load(runtime.mapping_file)).send_cooldown_status()
     return {
+        "version": __version__,
         "activator": {
             "key": definition["key"],
             "label": definition.get("label", definition["key"]),
@@ -282,6 +284,7 @@ def _audit_events(
         events.append(
             {
                 "status": status,
+                "timestamp": event.get("timestamp"),
                 "source_row": event.get("source_row"),
                 "identity_number": event.get("identity_number"),
                 "amount": event.get("amount"),
@@ -341,7 +344,7 @@ class AppHandler(BaseHTTPRequestHandler):
         try:
             activator = _activator_from_query(parsed)
             if parsed.path == "/health":
-                self._json({"ok": True, "service": "activadores-siesa"})
+                self._json({"ok": True, "service": "activadores-siesa", "version": __version__})
                 return
             if parsed.path == "/api/status":
                 self._json({"ok": True, "runtime": _redacted_runtime(_runtime_for_request(dry_run=True, activator=activator), activator)})

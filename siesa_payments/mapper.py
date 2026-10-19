@@ -68,6 +68,11 @@ def _apply_value_map(value: Any, rule: dict[str, Any], mapping: MappingConfig) -
 
 def _apply_format(value: Any, rule: dict[str, Any]) -> Any:
     value_format = rule.get("format")
+    if value_format == "receipt_reference_20":
+        # An unprefixed hexadecimal key can look like scientific notation to
+        # the receipt importer (e.g. 3121e4877...). Keep the 20-character field
+        # explicitly textual; the full idempotency key is unchanged.
+        return "RC" + str(value)[:18]
     if value_format == "decimal_signed_21":
         return format_decimal_signed(parse_decimal(value))
     if isinstance(value_format, str) and value_format.startswith("integer_"):

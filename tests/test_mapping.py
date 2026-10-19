@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
@@ -79,6 +80,43 @@ class MappingTests(TestCase):
         self.assertTrue(payload["RCyotrosingresos"][0]["F357_REFERENCIA"])
         self.assertEqual(payload["CxC"][0]["F354_VALOR_CR"], "+000000000480000.0000")
         self.assertEqual(payload["CxC"][0]["F353_NRO_CUOTA_CRUCE"], "000")
+
+    def test_references_for_todays_overflow_rejections_are_explicitly_textual(self) -> None:
+        payment = read_csv_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), self.mapping)[0]
+        rejected_keys = (
+            "8d43f7bdcf3106bf06fd64df32ffd909",
+            "3121e4877f7ed6fc489bd6c55070bff2",
+            "1d92a23fe75825a3b83655282afd594c",
+            "670e629ffcdb4079a9411886a1be1e6d",
+            "e917bebb8222b29a29eb49e3990e1fc0",
+            "d66289c54ff9796c2f81005f7d2250f7",
+            "289415e83975544933504c092323c662",
+            "44d27bc5346ba52ca5397f5847661b85",
+            "44023e215d931d4ebd4aba3ac9bacd72",
+            "934e27c8b6264293272e5a158b09ec5d",
+        )
+        for key in rejected_keys:
+            with self.subTest(key=key), patch.object(type(payment), "idempotency_key", return_value=key):
+                reference = build_payload(payment, self.mapping)["RCyotrosingresos"][0]["F357_REFERENCIA"]
+                self.assertEqual(reference, "RC" + key[:18])
+                self.assertEqual(len(reference), 20)
+                self.assertNotRegex(reference, r"^[0-9]*[eEdD][0-9]+")
+                self.assertEqual(payment.idempotency_key(), key)
+
+    def test_reference_change_preserves_all_other_payload_fields(self) -> None:
+        payment = read_csv_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), self.mapping)[0]
+        path = "RCyotrosingresos.0.F357_REFERENCIA"
+        legacy_template = {**self.mapping.payload_template,
+                           path: {**self.mapping.payload_template[path], "format": "max_20"}}
+        legacy_mapping = replace(self.mapping, payload_template=legacy_template)
+        for mode in ("cartera", "otros_ingresos"):
+            with self.subTest(mode=mode), patch.dict("os.environ", {"SIESA_RECIBO_FLUJO": mode}):
+                legacy = build_payload(payment, legacy_mapping)
+                updated = build_payload(payment, self.mapping)
+                self.assertEqual(updated, build_payload(payment, self.mapping))
+                self.assertEqual(legacy["RCyotrosingresos"][0].pop("F357_REFERENCIA"), payment.idempotency_key()[:20])
+                self.assertEqual(updated["RCyotrosingresos"][0].pop("F357_REFERENCIA"), "RC" + payment.idempotency_key()[:18])
+                self.assertEqual(updated, legacy)
 
     def test_reads_cross_document_from_single_sheet_column(self) -> None:
         csv_text = (

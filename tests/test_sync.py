@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import tempfile
 import json
+from dataclasses import replace
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
 from siesa_payments.config import MappingConfig, RuntimeConfig
 from siesa_payments.siesa_hub import SiesaHubClient
+from siesa_payments.source import read_csv_file
 from siesa_payments.sync import PaymentSyncService
 
 
@@ -134,6 +136,44 @@ class SyncTests(TestCase):
             self.assertEqual(transport.calls[0][2]["client_id"], "client")
             self.assertEqual(transport.calls[0][2]["client_secret"], "secret")
             self.assertTrue((tmp_path / "state.json").exists())
+
+    def test_reference_fix_reuses_previously_confirmed_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            csv_path = root / "payments.csv"
+            csv_path.write_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), encoding="utf-8")
+            runtime = runtime_for(root, csv_path, False)
+            key = read_csv_file(csv_path, self.mapping)[0].idempotency_key()
+            runtime.state_file.write_text(json.dumps({"processed_keys": [key]}), encoding="utf-8")
+            transport = FakeTransport()
+            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "142888", "Recibo", transport=transport)
+
+            result = PaymentSyncService(runtime, self.mapping, client).sync()
+
+            self.assertEqual(result.skipped_duplicates, 1)
+            self.assertEqual(result.sent, 0)
+            self.assertEqual(transport.calls, [])
+            self.assertEqual(json.loads(runtime.state_file.read_text())["processed_keys"], [key])
+
+    def test_new_reference_keeps_full_request_key_and_deduplicates_next_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            csv_path = root / "payments.csv"
+            csv_path.write_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), encoding="utf-8")
+            runtime = replace(runtime_for(root, csv_path, False), send_cooldown_minutes=0)
+            key = read_csv_file(csv_path, self.mapping)[0].idempotency_key()
+            transport = FakeTransport()
+            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "142888", "Recibo", transport=transport)
+
+            first = PaymentSyncService(runtime, self.mapping, client).sync()
+            second = PaymentSyncService(runtime, self.mapping, client).sync()
+
+            self.assertEqual((first.sent, second.skipped_duplicates, len(transport.calls)), (1, 1, 1))
+            self.assertEqual(transport.calls[0][2]["Idempotency-Key"], key)
+            self.assertEqual(len(key), 32)
+            payload = json.loads(transport.calls[0][3])
+            self.assertEqual(payload["RCyotrosingresos"][0]["F357_REFERENCIA"], "RC" + key[:18])
+            self.assertEqual(payload["Caja"][0]["F358_REFERENCIA_OTROS"], key[:30])
 
     def test_send_requires_explicit_allow_send(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from siesa_payments import web_server
 
@@ -22,6 +22,7 @@ class WebServerAuditTests(TestCase):
                         json.dumps(
                             {
                                 "status": "failed",
+                                "timestamp": "2026-10-19T13:50:52+00:00",
                                 "source_row": 2,
                                 "identity_number": "1000033853",
                                 "amount": "1000",
@@ -45,8 +46,16 @@ class WebServerAuditTests(TestCase):
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0]["source_row"], 2)
         self.assertEqual(events[0]["siesa_status_code"], 400)
+        self.assertEqual(events[0]["timestamp"], "2026-10-19T13:50:52+00:00")
         self.assertEqual(events[0]["siesa_response"]["mensaje"], "Documento cruce no existe")
         self.assertNotIn("payload", events[0])
+
+    def test_health_reports_deployed_version(self) -> None:
+        handler = Mock(path="/health")
+        web_server.AppHandler.do_GET(handler)
+        self.assertEqual(handler._json.call_args.args[0], {
+            "ok": True, "service": "activadores-siesa", "version": web_server.__version__,
+        })
 
     def test_other_income_mode_does_not_require_cxc_cross(self) -> None:
         class Payment:
