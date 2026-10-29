@@ -172,8 +172,8 @@ class SyncTests(TestCase):
             self.assertEqual(transport.calls[0][2]["Idempotency-Key"], key)
             self.assertEqual(len(key), 32)
             payload = json.loads(transport.calls[0][3])
-            self.assertEqual(payload["RCyotrosingresos"][0]["F357_REFERENCIA"], "RC" + key[:18])
-            self.assertEqual(payload["Caja"][0]["F358_REFERENCIA_OTROS"], key[:30])
+            self.assertEqual(payload["RCyotrosingresos"][0]["F357_REFERENCIA"], "20260213")
+            self.assertEqual(payload["Caja"][0]["F358_REFERENCIA_OTROS"], "20260213")
 
     def test_send_requires_explicit_allow_send(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

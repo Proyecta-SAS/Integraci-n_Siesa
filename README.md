@@ -23,6 +23,8 @@ Las columnas posteriores pertenecen al flujo historico de Alegra y no se usan pa
 
 El flujo principal queda parametrizado como `SIESA_RECIBO_FLUJO=otros_ingresos`: crea recibos tipo `RC`, no aplica cartera `FVE` y registra el ingreso en el auxiliar `28050505` (`ANTICIPO POR IDENTIFICAR`).
 
+Actualizacion de soporte del 2026-10-29: con el plano Connekta corregido, las dos referencias se envian como fecha del pago `AAAAMMDD` y los importes como decimales simples, sin signo `+` ni ceros de relleno. La llave interna de deduplicacion se conserva. Ver [correccion, muestra exitosa y validacion pendiente](docs/mapeo_campos.md#correccion-comunicada-por-soporte-el-2026-10-29).
+
 El sistema conserva soporte opcional para cruce de cartera si se cambia `SIESA_RECIBO_FLUJO=cartera`. En ese caso se pueden agregar columnas al final de la hoja sin romper la estructura actual:
 
 ```text

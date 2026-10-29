@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3 - 2026-10-29
+
+- Adopta el ejemplo exitoso comunicado por soporte Siesa: ambas referencias usan la fecha del pago `AAAAMMDD`, sin hashes ni prefijo `RC`.
+- Envia los importes como cadenas decimales simples, sin signo positivo ni ceros de relleno, conservando la precision decimal.
+- Conserva la llave idempotente, el header `Idempotency-Key` y el estado de recibos confirmados.
+- Agrega el JSON de soporte como muestra y pruebas locales de equivalencia, precision y deduplicacion. No constituye validacion de un envio real desde esta version.
+
 ## 0.2.2 - 2026-10-19
 
 - Evita referencias de recibo que parezcan notacion cientifica en `F357_REFERENCIA`: usa el prefijo `RC` y 18 caracteres de la llave, dentro del limite de 20 caracteres.

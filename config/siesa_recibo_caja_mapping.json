@@ -165,7 +165,7 @@
     "Caja.0.F358_VALOR": {
       "source": "payment",
       "field": "amount",
-      "format": "decimal_signed_21"
+      "format": "string"
     },
     "Caja.0.F358_ID_BANCO": {
       "source": "env",
@@ -194,8 +194,9 @@
       "value": ""
     },
     "Caja.0.F358_REFERENCIA_OTROS": {
-      "source": "idempotency_key",
-      "format": "max_30"
+      "source": "payment",
+      "field": "payment_date",
+      "format": "yyyymmdd"
     },
     "Caja.0.F358_FECHA_CONSIGNACION": {
       "source": "payment",
@@ -280,7 +281,7 @@
     "RCyotrosingresos.0.F357_VALOR_INGRESO": {
       "source": "payment",
       "field": "amount",
-      "format": "decimal_signed_21"
+      "format": "string"
     },
     "RCyotrosingresos.0.F357_ID_MONEDA_APLICAR": {
       "source": "env",
@@ -290,7 +291,7 @@
     "RCyotrosingresos.0.F357_VALOR_APLICAR_REAL": {
       "source": "payment",
       "field": "amount",
-      "format": "decimal_signed_21"
+      "format": "string"
     },
     "RCyotrosingresos.0.F357_ID_COBRADOR": {
       "source": "env",
@@ -369,8 +370,9 @@
       "value": ""
     },
     "RCyotrosingresos.0.F357_REFERENCIA": {
-      "source": "idempotency_key",
-      "format": "receipt_reference_20"
+      "source": "payment",
+      "field": "payment_date",
+      "format": "yyyymmdd"
     },
     "RCyotrosingresos.0.F357_IND_VALIDA_MEDPAGO": {
       "source": "env",
@@ -445,7 +447,7 @@
     "CxC.0.F354_VALOR_CR": {
       "source": "payment",
       "field": "amount",
-      "format": "decimal_signed_21"
+      "format": "string"
     },
     "CxC.0.F354_VALOR_APLICADO_PP": {
       "source": "literal",

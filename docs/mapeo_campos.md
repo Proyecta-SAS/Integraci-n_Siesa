@@ -82,7 +82,18 @@ La parametrizacion de recibos de caja de Siesa indica que varios valores son obl
 - Se requieren cuenta bancaria, metodo de pago, concepto, tipo/numero de identificacion y nombre.
 - Fechas aceptadas: `dd/mm/yyyy`, `yyyy-mm-dd`, `dd-mm-yyyy`, `dd/mm/yy`.
 - Montos aceptan formato colombiano (`480.000`) y decimal (`480000.50`).
-- Cada pago genera `externalReference` e `Idempotency-Key` para evitar duplicados.
+- Cada pago conserva una llave interna de 32 caracteres para el estado de deduplicacion y el header `Idempotency-Key`. Las referencias del payload usan la fecha del pago y no identifican de forma unica cada recibo.
+
+## Correccion comunicada por soporte el 2026-10-29
+
+Soporte informo que corrigio el plano de Connekta y cargo exitosamente el JSON conservado en `samples/siesa_support_20261029.json`. Identifico las referencias como causa del overflow; el ejemplo mantiene el tercero `222222222222` y la sucursal `001`.
+
+- `Caja.F358_REFERENCIA_OTROS` y `RCyotrosingresos.F357_REFERENCIA`: fecha del pago en formato `AAAAMMDD` (por ejemplo `20261017`). No enviar hashes ni combinaciones alfanumericas hasta conocer las restricciones del plano.
+- Importes (`F358_VALOR`, `F357_VALOR_INGRESO`, `F357_VALOR_APLICAR_REAL` y, en modo cartera, `F354_VALOR_CR`): cadenas decimales sin signo `+` ni relleno, por ejemplo `35000` o `35000.50`.
+- Los consecutivos y la clase documental conservan el formato entero con relleno existente; las pruebas comparan esos valores numericos con el ejemplo sin modificar los identificadores contables.
+- Banco `07`, medio `CG1`, cuenta, caja, cobrador y demas codigos del ejemplo corresponden a esa prueba; no se sustituyen de forma global para las otras fuentes o ambientes.
+
+Las pruebas locales verifican el formato, la precision monetaria y la continuidad de la deduplicacion. Queda pendiente validar desde la integracion contra el plano corregido y verificar el recibo en el ERP antes del cierre del caso. Para el pago de $35.000 del 17/10/2026, solicitar a soporte el numero de recibo y conciliarlo con la fila de origen antes de reenviarla: una carga hecha por soporte puede no estar registrada en el estado local.
 
 ## Ajuste del contrato final
 
