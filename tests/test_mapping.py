@@ -64,7 +64,7 @@ class MappingTests(TestCase):
         self.assertEqual(PaymentValidator(self.mapping.required_transaction_type).validate(payment), [])
         self.assertEqual(payload["RCyotrosingresos"][0]["F350_ID_TERCERO"], "222222222222")
 
-    def test_builds_sectioned_payload_for_connector_142888(self) -> None:
+    def test_builds_sectioned_payload_for_connector_261128(self) -> None:
         payment = read_csv_text(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"), self.mapping)[0]
 
         payload = build_payload(payment, self.mapping)

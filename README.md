@@ -25,6 +25,8 @@ El flujo principal queda parametrizado como `SIESA_RECIBO_FLUJO=otros_ingresos`:
 
 Actualizacion de soporte del 2026-10-29: con el plano Connekta corregido, las dos referencias se envian como fecha del pago `AAAAMMDD` y los importes como decimales simples, sin signo `+` ni ceros de relleno. La llave interna de deduplicacion se conserva. Ver [correccion, muestra exitosa y validacion pendiente](docs/mapeo_campos.md#correccion-comunicada-por-soporte-el-2026-10-29).
 
+Soporte confirmo despues que el conector corregido es `261128 - API_v2_ReciboCaja` y que su muestra se cargo en produccion. Deben actualizarse tanto los identificadores como `SIESA_CONNECTOR_URL`, que tiene prioridad sobre ellos. Este conector no devuelve numero de recibo: conciliar en ERP por referencia, tercero, fecha, valor y nota; conservar vacio `Recibo Siesa` cuando no venga explicitamente en la respuesta.
+
 El sistema conserva soporte opcional para cruce de cartera si se cambia `SIESA_RECIBO_FLUJO=cartera`. En ese caso se pueden agregar columnas al final de la hoja sin romper la estructura actual:
 
 ```text
@@ -41,7 +43,7 @@ Estado Siesa, Recibo Siesa, Fecha envio, Respuesta Siesa, Error Siesa
 
 La integracion lee la hoja por export CSV y puede escribir los resultados en la misma pestana mediante el webhook incluido en `scripts/sheets_writeback.gs`. Los estados son `Pendiente`, `Pendiente por corregir` y `Cargado`. La escritura se habilita con `SIESA_SHEETS_WRITEBACK_ENABLED=true` despues de configurar el webhook; las simulaciones nunca escriben en la hoja. Consulte [configuracion y comportamiento de estados](docs/estados_sheets.md).
 
-La pestana `ID` funciona como catalogo de seleccion de la hoja. Para Siesa se deja el mapeo final en `config/siesa_recibo_caja_mapping.json` porque los codigos contables/documentales del conector 142888 dependen de la parametrizacion del ERP.
+La pestana `ID` funciona como catalogo de seleccion de la hoja. Para Siesa se deja el mapeo final en `config/siesa_recibo_caja_mapping.json` porque los codigos contables/documentales del conector 261128 dependen de la parametrizacion del ERP.
 
 ## Flujo
 
@@ -49,7 +51,7 @@ La pestana `ID` funciona como catalogo de seleccion de la hoja. Para Siesa se de
 2. Normalizar encabezados y valores.
 3. Clasificar la fila con la misma logica del router Make/Alegra.
 4. Validar que la fila represente un pago de cliente registrable.
-5. Construir payload para `142888 - API_v1_ReciboCaja`.
+5. Construir payload para `261128 - API_v2_ReciboCaja`.
 6. Enviar a Siesa HUB en QA o produccion.
 7. Registrar trazabilidad local en JSONL y deduplicar por llave idempotente.
 
@@ -75,10 +77,10 @@ Variables principales:
 - `SIESA_CONN_KEY`: header `Connikey` copiado desde el Documentador.
 - `SIESA_CONN_TOKEN`: header `Connitoken` copiado desde el Documentador.
 - `SIESA_ID_COMPANIA`: parametro `idCompania` del conector.
-- `SIESA_ID_DOCUMENTO`: parametro `idDocumento`; por defecto `142888`.
-- `SIESA_NOMBRE_DOCUMENTO`: parametro `nombreDocumento`; por defecto `API_v1_ReciboCaja`.
-- `SIESA_HUB_CONNECTOR_ID`: por defecto `142888`.
-- `SIESA_HUB_OPERATION`: por defecto `API_v1_ReciboCaja`.
+- `SIESA_ID_DOCUMENTO`: parametro `idDocumento`; por defecto `261128`.
+- `SIESA_NOMBRE_DOCUMENTO`: parametro `nombreDocumento`; por defecto `API_v2_ReciboCaja`.
+- `SIESA_HUB_CONNECTOR_ID`: por defecto `261128`.
+- `SIESA_HUB_OPERATION`: por defecto `API_v2_ReciboCaja`.
 - `SIESA_INPUT_CSV`: archivo CSV local.
 - `SIESA_SHEETS_CSV_URL`: URL de exportacion CSV de Google Sheets.
 - `SIESA_DRY_RUN`: `true` para validar y generar payloads sin enviar.
@@ -149,12 +151,12 @@ Esta version deja probado el envio de recibo de caja. Para produccion falta conf
 
 Checklist minimo:
 
-- Confirmar con Siesa el contrato JSON exacto del conector `142888 - API_v1_ReciboCaja`.
+- Confirmar con Siesa el contrato JSON exacto del conector `261128 - API_v2_ReciboCaja`.
 - Ajustar `config/siesa_recibo_caja_mapping.json` a los nombres/codigos exigidos por el conector.
 - Ejecutar `sync --dry-run` con muestra real de la hoja.
 - Ejecutar en QA con 1 pago, verificar recibo de caja en el modulo operativo/financiero de Siesa.
 - Ejecutar lote QA pequeno y comparar total, tercero, fecha, cuenta, medio de pago, concepto y centro de costo.
-- Activar produccion solo despues de verificar trazabilidad: `externalReference`, respuesta del HUB y numero/documento creado.
+- Activar produccion solo despues de verificar trazabilidad: referencias del payload, respuesta del HUB y recibo localizado en ERP. La API v2 no devuelve el numero de recibo.
 
 ## Pruebas
 

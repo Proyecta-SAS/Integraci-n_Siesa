@@ -1,6 +1,6 @@
 {
-  "connector_id": "142888",
-  "operation": "API_v1_ReciboCaja",
+  "connector_id": "261128",
+  "operation": "API_v2_ReciboCaja",
   "required_transaction_type": "Ingreso",
   "contact_third_parties": {
     "Consumidor Final": {

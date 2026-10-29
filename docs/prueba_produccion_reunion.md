@@ -5,9 +5,9 @@ Objetivo: crear un recibo de caja real en Siesa produccion con una fila controla
 ## Antes de la reunion
 
 1. Confirmar que el acceso usado es Local/produccion, no QA.
-2. Tener la Request URL productiva del conector `142888 - API_v1_ReciboCaja` sin placeholders.
+2. Tener la Request URL productiva del conector `261128 - API_v2_ReciboCaja` sin placeholders.
 3. Tener `Connikey` y `Connitoken` productivos.
-4. Confirmar `idCompania`, `idDocumento=142888` y `nombreDocumento=API_v1_ReciboCaja`.
+4. Confirmar `idCompania`, `idDocumento=261128` y `nombreDocumento=API_v2_ReciboCaja`.
 5. Confirmar con contabilidad los codigos productivos:
    - C.O. del recibo.
    - Tipo documento `RC`.
@@ -26,7 +26,7 @@ SIESA_ENV=prod
 SIESA_DRY_RUN=true
 SIESA_ALLOW_SEND=false
 SIESA_SEND_COOLDOWN_MINUTES=15
-SIESA_CONNECTOR_URL=<Request URL Local/produccion del conector 142888 ya resuelta>
+SIESA_CONNECTOR_URL=<Request URL Local/produccion del conector 261128 ya resuelta>
 # Alternativa si Siesa entrega base URL + ecosistema:
 SIESA_BASE_URL=<baseUrl Local/produccion sin placeholders>
 SIESA_ID_ECOSISTEMA=<idEcoSistema productivo>

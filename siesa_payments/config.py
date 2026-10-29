@@ -79,16 +79,16 @@ class RuntimeConfig:
             log_file=Path(os.getenv("SIESA_LOG_FILE", "logs/siesa_payments.jsonl")),
             siesa_connector_url=os.getenv("SIESA_CONNECTOR_URL") or None,
             hub_base_url=os.getenv("SIESA_HUB_BASE_URL") or os.getenv("SIESA_BASE_URL") or None,
-            hub_connector_id=os.getenv("SIESA_HUB_CONNECTOR_ID", "142888"),
-            hub_operation=os.getenv("SIESA_HUB_OPERATION", "API_v1_ReciboCaja"),
+            hub_connector_id=os.getenv("SIESA_HUB_CONNECTOR_ID", "261128"),
+            hub_operation=os.getenv("SIESA_HUB_OPERATION", "API_v2_ReciboCaja"),
             siesa_connikey=os.getenv("SIESA_CONN_KEY") or os.getenv("SIESA_CONNIKEY") or None,
             siesa_connitoken=os.getenv("SIESA_CONN_TOKEN") or os.getenv("SIESA_CONNITOKEN") or None,
             siesa_client_id=os.getenv("SIESA_CLIENT_ID") or os.getenv("SIESA_APIGEE_CLIENT_ID") or None,
             siesa_client_secret=os.getenv("SIESA_CLIENT_SECRET") or os.getenv("SIESA_APIGEE_CLIENT_SECRET") or None,
             siesa_id_compania=os.getenv("SIESA_ID_COMPANIA") or None,
             siesa_id_ecosistema=os.getenv("SIESA_ID_ECOSISTEMA") or None,
-            siesa_id_documento=os.getenv("SIESA_ID_DOCUMENTO", "142888"),
-            siesa_nombre_documento=os.getenv("SIESA_NOMBRE_DOCUMENTO", "API_v1_ReciboCaja"),
+            siesa_id_documento=os.getenv("SIESA_ID_DOCUMENTO", "261128"),
+            siesa_nombre_documento=os.getenv("SIESA_NOMBRE_DOCUMENTO", "API_v2_ReciboCaja"),
             hub_execute_path=os.getenv("SIESA_HUB_EXECUTE_PATH", "/apisestandar/v3/conectoresimportar"),
             sheets_writeback_enabled=_env_bool("SIESA_SHEETS_WRITEBACK_ENABLED", False),
             sheets_webhook_url=os.getenv("SIESA_SHEETS_WEBHOOK_URL") or None,
@@ -110,8 +110,8 @@ class MappingConfig:
     def load(cls, path: Path) -> "MappingConfig":
         data = json.loads(path.read_text(encoding="utf-8"))
         return cls(
-            connector_id=str(data.get("connector_id", "142888")),
-            operation=str(data.get("operation", "API_v1_ReciboCaja")),
+            connector_id=str(data.get("connector_id", "261128")),
+            operation=str(data.get("operation", "API_v2_ReciboCaja")),
             required_transaction_type=data.get("required_transaction_type"),
             sheet_columns={
                 key: [str(alias) for alias in aliases]

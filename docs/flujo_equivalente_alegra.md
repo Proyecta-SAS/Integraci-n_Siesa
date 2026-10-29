@@ -12,7 +12,7 @@ La captura de Siesa Cloud SBS para `ALIANZA JURIDICA AVANZAR SAS` confirma el mo
 Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos
 ```
 
-Esto alinea el desarrollo con el conector `142888 - API_v1_ReciboCaja`. En este flujo, la fila de Sheets no debe crear una factura de venta ni cruzar `FVE`; debe registrar el ingreso en el recibo tipo `RC` con auxiliar `28050505`.
+Esto alinea el desarrollo con el conector `261128 - API_v2_ReciboCaja`. En este flujo, la fila de Sheets no debe crear una factura de venta ni cruzar `FVE`; debe registrar el ingreso en el recibo tipo `RC` con auxiliar `28050505`.
 
 ## Componentes necesarios
 
@@ -39,7 +39,7 @@ Esto alinea el desarrollo con el conector `142888 - API_v1_ReciboCaja`. En este 
    - `create_client_provider_receipt`: `Cliente / Proveedor`.
 5. Se validan campos obligatorios y tipo de transaccion `Ingreso`.
 6. Se genera `externalReference` para idempotencia.
-7. Se envia el payload a `142888 - API_v1_ReciboCaja`.
+7. Se envia el payload a `261128 - API_v2_ReciboCaja`.
 8. Se guarda auditoria en `logs/siesa_payments.jsonl`.
 9. Se guarda estado en `.state/siesa_payments_state.json` para evitar duplicados.
 
@@ -70,8 +70,8 @@ Registrar tarea cada 5 minutos en QA:
 ## Siguiente fase: APIs
 
 1. Sacar o confirmar endpoint base de Siesa HUB QA.
-2. Validar autenticacion y permisos del conector `142888`.
-3. Obtener contrato JSON exacto de `API_v1_ReciboCaja`.
+2. Validar autenticacion y permisos del conector `261128`.
+3. Obtener contrato JSON exacto de `API_v2_ReciboCaja`.
 4. Ajustar `config/siesa_recibo_caja_mapping.json`.
 5. Confirmar con Siesa si la creacion/validacion de terceros va dentro de `ReciboCaja` o requiere otro conector previo.
 6. Conectar la visual con el backend para listar filas, validar, mostrar ruta calculada y enviar.

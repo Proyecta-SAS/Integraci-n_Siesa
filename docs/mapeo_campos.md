@@ -72,8 +72,8 @@ La parametrizacion de recibos de caja de Siesa indica que varios valores son obl
 | `SIESA_TIPO_DOCUMENTO` | Tipo de documento que pasara al ERP, usualmente un recibo de caja. |
 | `SIESA_ID_CAJA` | Caja a la cual se asociara el recibo. |
 | `SIESA_ID_COMPANIA` | Compania Siesa donde se crea el recibo. |
-| `SIESA_ID_DOCUMENTO` | Documento/conector Siesa; por defecto `142888`. |
-| `SIESA_NOMBRE_DOCUMENTO` | Nombre del documento; por defecto `API_v1_ReciboCaja`. |
+| `SIESA_ID_DOCUMENTO` | Documento/conector Siesa; por defecto `261128`. |
+| `SIESA_NOMBRE_DOCUMENTO` | Nombre del documento; por defecto `API_v2_ReciboCaja`. |
 
 ## Validaciones implementadas
 
@@ -88,12 +88,14 @@ La parametrizacion de recibos de caja de Siesa indica que varios valores son obl
 
 Soporte informo que corrigio el plano de Connekta y cargo exitosamente el JSON conservado en `samples/siesa_support_20261029.json`. Identifico las referencias como causa del overflow; el ejemplo mantiene el tercero `222222222222` y la sucursal `001`.
 
+En su mensaje posterior confirmo que la carga fue en produccion y que el conector corregido es `261128 - API_v2_ReciboCaja`, en reemplazo de `142888 - API_v1_ReciboCaja`. Actualizar `SIESA_ID_DOCUMENTO`, `SIESA_NOMBRE_DOCUMENTO`, `SIESA_HUB_CONNECTOR_ID`, `SIESA_HUB_OPERATION` y los parametros `idDocumento`/`nombreDocumento` dentro de `SIESA_CONNECTOR_URL`: la URL completa tiene prioridad y no se reconstruye con los otros valores.
+
 - `Caja.F358_REFERENCIA_OTROS` y `RCyotrosingresos.F357_REFERENCIA`: fecha del pago en formato `AAAAMMDD` (por ejemplo `20261017`). No enviar hashes ni combinaciones alfanumericas hasta conocer las restricciones del plano.
 - Importes (`F358_VALOR`, `F357_VALOR_INGRESO`, `F357_VALOR_APLICAR_REAL` y, en modo cartera, `F354_VALOR_CR`): cadenas decimales sin signo `+` ni relleno, por ejemplo `35000` o `35000.50`.
 - Los consecutivos y la clase documental conservan el formato entero con relleno existente; las pruebas comparan esos valores numericos con el ejemplo sin modificar los identificadores contables.
 - Banco `07`, medio `CG1`, cuenta, caja, cobrador y demas codigos del ejemplo corresponden a esa prueba; no se sustituyen de forma global para las otras fuentes o ambientes.
 
-Las pruebas locales verifican el formato, la precision monetaria y la continuidad de la deduplicacion. Queda pendiente validar desde la integracion contra el plano corregido y verificar el recibo en el ERP antes del cierre del caso. Para el pago de $35.000 del 17/10/2026, solicitar a soporte el numero de recibo y conciliarlo con la fila de origen antes de reenviarla: una carga hecha por soporte puede no estar registrada en el estado local.
+Las pruebas locales verifican el formato, la precision monetaria y la continuidad de la deduplicacion. Queda pendiente validar desde la integracion contra el plano corregido y verificar el recibo en el ERP antes del cierre del caso. Soporte aclaro que el conector no devuelve el numero de recibo; una respuesta exitosa se guarda como confirmada aunque ese numero este vacio. Para el pago ya cargado de $35.000 del 17/10/2026, buscar en produccion la referencia `20261017`, tercero `222222222222` y nota `PAGO QR MARCELA DEL C`, y conciliarlo con la fila de origen antes de reenviarla: una carga hecha por soporte puede no estar registrada en el estado local. La referencia por fecha puede repetirse entre pagos del mismo dia y no sustituye la llave interna de deduplicacion.
 
 ## Ajuste del contrato final
 

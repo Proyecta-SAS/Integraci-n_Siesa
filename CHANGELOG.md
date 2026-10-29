@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.4 - 2026-10-29
+
+- Actualiza el conector vigente a `261128 - API_v2_ReciboCaja`, comunicado por soporte despues de confirmar que su prueba creo un recibo real en produccion.
+- Sincroniza los valores predeterminados, mapeo, configuracion de ejemplo, pantalla y documentacion operativa. La URL completa productiva y los cuatro identificadores de entorno deben apuntar tambien a v2.
+- Verifica que una respuesta exitosa sin numero de recibo quede confirmada y deduplicada, con numero vacio y referencia en la auditoria, sin inventar un consecutivo.
+- Conserva las referencias por fecha y los importes simples de v0.2.3. La carga de soporte requiere conciliacion por referencia, tercero, valor y nota antes de reenviar la fila.
+
 ## 0.2.3 - 2026-10-29
 
 - Adopta el ejemplo exitoso comunicado por soporte Siesa: ambas referencias usan la fecha del pago `AAAAMMDD`, sin hashes ni prefijo `RC`.

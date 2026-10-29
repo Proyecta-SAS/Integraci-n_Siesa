@@ -449,7 +449,7 @@ async function activateSiesa() {
     if (!status.runtime.connector_url_configured) {
       const error = {
         ok: false,
-        error: "Falta SIESA_CONNECTOR_URL. Copia la Request URL exacta desde Ver Guia > Copiar URL en el conector 142888.",
+        error: "Falta SIESA_CONNECTOR_URL. Copia la Request URL exacta desde Ver Guia > Copiar URL en el conector 261128.",
       };
       writeJson(resultOutput, error);
       setResult("Envio bloqueado", error.error, ["Completa la URL del conector y vuelve a revisar."], "warn");

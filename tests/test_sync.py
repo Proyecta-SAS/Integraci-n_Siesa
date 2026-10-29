@@ -6,6 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 from siesa_payments.config import MappingConfig, RuntimeConfig
 from siesa_payments.siesa_hub import SiesaHubClient
@@ -37,16 +38,16 @@ def runtime_for(tmp_path: Path, csv_path: Path, dry_run: bool) -> RuntimeConfig:
         log_file=tmp_path / "audit.jsonl",
         siesa_connector_url=None,
         hub_base_url="https://siesa.example",
-        hub_connector_id="142888",
-        hub_operation="API_v1_ReciboCaja",
+        hub_connector_id="261128",
+        hub_operation="API_v2_ReciboCaja",
         siesa_connikey="key",
         siesa_connitoken="token",
         siesa_client_id="client",
         siesa_client_secret="secret",
         siesa_id_compania="1",
         siesa_id_ecosistema="10",
-        siesa_id_documento="142888",
-        siesa_nombre_documento="API_v1_ReciboCaja",
+        siesa_id_documento="261128",
+        siesa_nombre_documento="API_v2_ReciboCaja",
         hub_execute_path="/hub/execute",
     )
 
@@ -69,6 +70,19 @@ class SyncTests(TestCase):
     def tearDown(self) -> None:
         self.env.stop()
 
+    def test_v2_defaults_and_mapping_target_the_new_connector(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            runtime = RuntimeConfig.from_env()
+        self.assertEqual(runtime.hub_connector_id, self.mapping.connector_id)
+        self.assertEqual(runtime.hub_operation, self.mapping.operation)
+        self.assertEqual(runtime.siesa_id_documento, "261128")
+        self.assertEqual(runtime.siesa_nombre_documento, "API_v2_ReciboCaja")
+        client = SiesaHubClient("https://example.com", "key", "token", "1",
+                               runtime.siesa_id_documento, runtime.siesa_nombre_documento)
+        params = parse_qs(urlsplit(client.connection_summary()["url"]).query)
+        self.assertEqual(params["idDocumento"], ["261128"])
+        self.assertEqual(params["nombreDocumento"], ["API_v2_ReciboCaja"])
+
     def test_dry_run_does_not_call_hub(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -80,8 +94,8 @@ class SyncTests(TestCase):
                 "key",
                 "token",
                 "1",
-                "142888",
-                "API_v1_ReciboCaja",
+                "261128",
+                "API_v2_ReciboCaja",
                 transport=transport,
             )
 
@@ -117,8 +131,8 @@ class SyncTests(TestCase):
                 client_id="client",
                 client_secret="secret",
                 id_compania="1",
-                id_documento="142888",
-                nombre_documento="API_v1_ReciboCaja",
+                id_documento="261128",
+                nombre_documento="API_v2_ReciboCaja",
                 id_ecosistema="10",
                 execute_path="/hub/execute",
                 transport=transport,
@@ -146,7 +160,7 @@ class SyncTests(TestCase):
             key = read_csv_file(csv_path, self.mapping)[0].idempotency_key()
             runtime.state_file.write_text(json.dumps({"processed_keys": [key]}), encoding="utf-8")
             transport = FakeTransport()
-            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "142888", "Recibo", transport=transport)
+            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "261128", "Recibo", transport=transport)
 
             result = PaymentSyncService(runtime, self.mapping, client).sync()
 
@@ -163,7 +177,7 @@ class SyncTests(TestCase):
             runtime = replace(runtime_for(root, csv_path, False), send_cooldown_minutes=0)
             key = read_csv_file(csv_path, self.mapping)[0].idempotency_key()
             transport = FakeTransport()
-            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "142888", "Recibo", transport=transport)
+            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "261128", "Recibo", transport=transport)
 
             first = PaymentSyncService(runtime, self.mapping, client).sync()
             second = PaymentSyncService(runtime, self.mapping, client).sync()
@@ -222,8 +236,8 @@ class SyncTests(TestCase):
                 client_id="client",
                 client_secret="secret",
                 id_compania="1",
-                id_documento="142888",
-                nombre_documento="API_v1_ReciboCaja",
+                id_documento="261128",
+                nombre_documento="API_v2_ReciboCaja",
                 id_ecosistema="10",
                 execute_path="/hub/execute",
                 transport=first_transport,
@@ -241,8 +255,8 @@ class SyncTests(TestCase):
                 client_id="client",
                 client_secret="secret",
                 id_compania="1",
-                id_documento="142888",
-                nombre_documento="API_v1_ReciboCaja",
+                id_documento="261128",
+                nombre_documento="API_v2_ReciboCaja",
                 id_ecosistema="10",
                 execute_path="/hub/execute",
                 transport=second_transport,
@@ -269,13 +283,13 @@ class SyncTests(TestCase):
             base_url=None,
             connector_url=(
                 "https://{baseUrl}/apisestandar/v3/conectoresimportar"
-                "?idCompania=9534&idEcoSistema={idEcoSistema}&idDocumento=142888"
+                "?idCompania=9534&idEcoSistema={idEcoSistema}&idDocumento=261128"
             ),
             connikey="key",
             connitoken="token",
             id_compania="9534",
-            id_documento="142888",
-            nombre_documento="API_v1_ReciboCaja",
+            id_documento="261128",
+            nombre_documento="API_v2_ReciboCaja",
         )
 
         with self.assertRaisesRegex(RuntimeError, "placeholders"):

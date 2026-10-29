@@ -59,7 +59,7 @@ class SheetTransportTests(TestCase):
                 SheetStatusWriter(url, "secret", "book", 0)
 
     def test_http_200_with_import_error_is_not_loaded(self):
-        client = SiesaHubClient("https://example.com", "key", "token", "1", "142888", "Recibo")
+        client = SiesaHubClient("https://example.com", "key", "token", "1", "261128", "Recibo")
         self.assertFalse(client._decode(200, b'{"codigo":1,"mensaje":"Rechazado"}').ok)
         self.assertTrue(client._decode(200, b'{"codigo":0,"mensaje":"Transaccion Exitosa"}').ok)
 
@@ -111,6 +111,30 @@ class SheetSyncTests(TestCase):
         self.assertEqual(self.statuses(), [LOADED])
         self.assertEqual(self.writer.write.call_args.kwargs["receipt"], "RC-17")
         self.assertTrue(self.writer.write.call_args.kwargs["sent_at"])
+
+    def test_success_without_receipt_number_is_saved_and_not_resent(self):
+        response = {"codigo": 0, "mensaje": "Transaccion Exitosa"}
+        client = SiesaHubClient("https://example.com", "key", "token", "1", "261128", "API_v2_ReciboCaja")
+        self.hub.register_cash_receipt.return_value = client._decode(200, json.dumps(response).encode())
+
+        first = self.service().sync()
+        self.assertEqual((first.sent, first.failed), (1, 0))
+        self.assertEqual(self.statuses(), [PENDING, LOADED])
+        self.assertEqual(self.writer.write.call_args.kwargs["receipt"], "")
+        state = json.loads(self.runtime.state_file.read_text())
+        self.assertEqual(len(state["processed_keys"]), 1)
+        saved = state["receipts"][state["processed_keys"][0]]
+        self.assertEqual(saved["receipt"], "")
+        self.assertEqual(saved["response"], response)
+        event = json.loads(self.runtime.log_file.read_text().splitlines()[-1])
+        self.assertEqual(event["payload"]["RCyotrosingresos"][0]["F357_REFERENCIA"], "20260213")
+
+        self.writer.reset_mock()
+        second = self.service().sync()
+        self.assertEqual(second.skipped_duplicates, 1)
+        self.assertEqual(self.hub.register_cash_receipt.call_count, 1)
+        self.assertEqual(self.statuses(), [LOADED])
+        self.assertEqual(self.writer.write.call_args.kwargs["receipt"], "")
 
     def test_failure_stays_pending_and_corrected_retry_can_send(self):
         self.hub.register_cash_receipt.return_value = SiesaResponse(400, False, {"mensaje": "Tercero no existe"}, "")

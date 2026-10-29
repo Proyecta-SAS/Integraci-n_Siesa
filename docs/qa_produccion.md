@@ -2,7 +2,7 @@
 
 ## QA
 
-1. Confirmar URL QA, `Connikey`, `Connitoken`, `idCompania`, `idDocumento` y `nombreDocumento` del conector 142888.
+1. Confirmar URL QA, `Connikey`, `Connitoken`, `idCompania`, `idDocumento=261128` y `nombreDocumento=API_v2_ReciboCaja`. El conector anterior `142888` se conserva abajo como evidencia historica de QA.
 2. Ejecutar `python -m siesa_payments.cli validate-connector` para validar que la configuracion minima esta cargada.
 3. Exportar una muestra de la hoja Alegra a CSV o configurar `SIESA_SHEETS_CSV_URL`.
 4. Ejecutar `python -m siesa_payments.cli sync --input-csv <archivo.csv> --dry-run`.
@@ -12,7 +12,7 @@
    - tercero correcto;
    - fecha y valor correctos;
    - caja, moneda, concepto de flujo efectivo y medio de pago correctos;
-   - numero/documento devuelto por HUB guardado en trazabilidad.
+   - respuesta exitosa guardada en trazabilidad y recibo localizado en ERP por referencia, tercero, fecha, valor y nota; v2 no devuelve el numero.
 7. Ejecutar lote pequeno en QA y conciliar total de registros y sumatoria de valores.
 
 ## Produccion

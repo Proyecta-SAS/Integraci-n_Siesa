@@ -15,6 +15,13 @@ Si la API no retorna explicitamente el numero del recibo, la columna de numero
 queda vacia; no se inventa un consecutivo. Fecha envio guarda la fecha UTC del
 envio confirmado. Al corregir y reenviar una fila se limpia el error anterior.
 
+Soporte confirmo el 2026-10-29 que `261128 - API_v2_ReciboCaja` no devuelve
+numero de recibo. Una respuesta exitosa sin ese numero sigue siendo `Cargado`
+y conserva su llave interna para impedir reenvios. La conciliacion en ERP usa
+la referencia del payload (fecha `AAAAMMDD`), tercero, valor y nota: la fecha
+sola no es unica. La prueba de soporte de $35.000, referencia `20261017`, fue
+en produccion; conciliarla antes de activar de nuevo esa fila.
+
 ## Preparar el webhook
 
 1. Cree un proyecto de Google Apps Script y copie el contenido de
