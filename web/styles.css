@@ -536,3 +536,9 @@ th {
     font-size: 17px;
   }
 }
+.payment-note-hint {
+  margin: 0 16px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+}

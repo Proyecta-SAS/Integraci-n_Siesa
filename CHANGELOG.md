@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5 - 2026-11-05
+
+- Muestra la nota de cada pago y las filas que coinciden, con instrucciones para distinguir dos pagos reales iguales mediante su referencia o nota.
+- Consulta el estado persistente para mostrar los pagos ya registrados y calcular solo los nuevos recibos e importes pendientes en la revision y confirmacion del lote.
+- Conserva la identidad de los pagos y los envios historicos; prueba dos notas distintas, reintentos, cambio de orden y recuperacion de un segundo pago omitido.
+- Explica las respuestas de servidor sin JSON y pide consultar el estado antes de reintentar un envio que puede haber continuado.
+
 ## 0.2.4 - 2026-10-29
 
 - Actualiza el conector vigente a `261128 - API_v2_ReciboCaja`, comunicado por soporte despues de confirmar que su prueba creo un recibo real en produccion.

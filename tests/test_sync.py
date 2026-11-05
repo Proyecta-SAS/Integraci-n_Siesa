@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import tempfile
 import json
+import csv
+import io
 from dataclasses import replace
 from pathlib import Path
 from unittest import TestCase
@@ -188,6 +190,56 @@ class SyncTests(TestCase):
             payload = json.loads(transport.calls[0][3])
             self.assertEqual(payload["RCyotrosingresos"][0]["F357_REFERENCIA"], "20260213")
             self.assertEqual(payload["Caja"][0]["F358_REFERENCIA_OTROS"], "20260213")
+
+    def test_distinct_notes_send_both_payments_and_retries_skip_both(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            csv_path = root / "payments.csv"
+            rows = list(csv.reader(io.StringIO(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"))))
+            second = list(rows[1])
+            second[9] = "Transferencia 67890"
+            rows[1][9] = "Transferencia 12345"
+            rows.append(second)
+            with csv_path.open("w", encoding="utf-8", newline="") as file:
+                csv.writer(file).writerows(rows)
+            runtime = replace(runtime_for(root, csv_path, False), send_cooldown_minutes=0)
+            transport = FakeTransport()
+            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "261128", "Recibo", transport=transport)
+            first = PaymentSyncService(runtime, self.mapping, client).sync()
+            # Moving a payment to another row must not make it a new payment.
+            rows[1:] = reversed(rows[1:])
+            with csv_path.open("w", encoding="utf-8", newline="") as file:
+                csv.writer(file).writerows(rows)
+            retry = PaymentSyncService(runtime, self.mapping, client).sync()
+            self.assertEqual((first.sent, retry.sent, retry.skipped_duplicates), (2, 0, 2))
+            self.assertEqual(len(transport.calls), 2)
+            self.assertNotEqual(transport.calls[0][2]["Idempotency-Key"], transport.calls[1][2]["Idempotency-Key"])
+
+    def test_different_note_recovers_only_second_legitimate_payment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            csv_path = root / "payments.csv"
+            rows = list(csv.reader(io.StringIO(Path("samples/alegra_payments.csv").read_text(encoding="utf-8"))))
+            rows.append(list(rows[1]))
+            def save_rows():
+                with csv_path.open("w", encoding="utf-8", newline="") as file:
+                    csv.writer(file).writerows(rows)
+            save_rows()
+            runtime = replace(runtime_for(root, csv_path, False), send_cooldown_minutes=0)
+            transport = FakeTransport()
+            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "261128", "Recibo", transport=transport)
+            initial = PaymentSyncService(runtime, self.mapping, client).sync()
+            self.assertEqual((initial.sent, initial.skipped_duplicates), (1, 1))
+            original_key = read_csv_file(csv_path, self.mapping)[0].idempotency_key()
+            rows[2][9] += " - Segundo pago confirmado"
+            save_rows()
+            corrected = PaymentSyncService(runtime, self.mapping, client).sync()
+            retry = PaymentSyncService(runtime, self.mapping, client).sync()
+            self.assertEqual((corrected.sent, corrected.skipped_duplicates), (1, 1))
+            self.assertEqual((retry.sent, retry.skipped_duplicates, len(transport.calls)), (0, 2, 2))
+            state = json.loads(runtime.state_file.read_text())
+            self.assertIn(original_key, state["processed_keys"])
+            self.assertEqual(len(state["processed_keys"]), 2)
 
     def test_send_requires_explicit_allow_send(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -16,6 +16,7 @@ from . import __version__
 from .config import MappingConfig, RuntimeConfig, load_env_file
 from .flow import decide_flow
 from .source import iter_payments
+from .state import SyncState
 from .sync import PaymentSyncService, SendCooldownError
 from .validation import PaymentValidator
 
@@ -186,12 +187,20 @@ def inspect_rows(limit: int | None = None, activator: str = "alianza") -> dict[s
     runtime = _runtime_for_request(dry_run=True, activator=activator)
     mapping = MappingConfig.load(runtime.mapping_file)
     validator = PaymentValidator(mapping.required_transaction_type)
+    state = SyncState(runtime.state_file)
+    seen: dict[str, int] = {}
     rows = []
     for payment in iter_payments(runtime.input_csv, runtime.sheets_csv_url, mapping):
         issues = validator.validate(payment)
         flow = decide_flow(payment)
         flow_key = "otros_ingresos_28050505" if _uses_other_income_mode() else flow.key
         cross_ready, cross_source = _cross_status(payment)
+        key = payment.idempotency_key()
+        duplicate_of = seen.get(key)
+        already_sent = state.contains(key)
+        unconfirmed = bool(state.get("uncertain_receipts", {}).get(key))
+        if not issues and cross_ready:
+            seen.setdefault(key, payment.source_row)
         row_issues = [asdict(issue) for issue in issues]
         if not cross_ready:
             row_issues.append(
@@ -216,8 +225,12 @@ def inspect_rows(limit: int | None = None, activator: str = "alianza") -> dict[s
                 "payment_date": payment.payment_date.isoformat(),
                 "method": payment.payment_method,
                 "amount": str(payment.amount),
+                "note": payment.note,
+                "duplicate_of": duplicate_of,
+                "already_sent": already_sent,
+                "unconfirmed": unconfirmed,
                 "valid": not issues,
-                "ready": not issues and cross_ready,
+                "ready": not issues and cross_ready and not already_sent and not duplicate_of and not unconfirmed,
                 "issues": row_issues,
             }
         )
@@ -237,7 +250,7 @@ def preflight(limit: int | None = None, activator: str = "alianza") -> dict[str,
         if row["ready"]:
             ready_rows.append(row["source_row"])
             total_amount += Decimal(row["amount"])
-        else:
+        elif not row["valid"] or not row["cross_ready"] or row["unconfirmed"]:
             invalid_rows.append(row["source_row"])
         if not row["cross_ready"]:
             missing_cross_rows.append(row["source_row"])
@@ -250,6 +263,8 @@ def preflight(limit: int | None = None, activator: str = "alianza") -> dict[str,
             "send_unlocked": runtime["send_unlocked"],
             "rows_checked": len(rows),
             "ready_rows": len(ready_rows),
+            "already_sent_rows": [row["source_row"] for row in rows if row["already_sent"] and not row["duplicate_of"]],
+            "duplicate_rows": [row["source_row"] for row in rows if row["duplicate_of"]],
             "invalid_rows": invalid_rows,
             "missing_cross_rows": missing_cross_rows,
             "total_ready_amount": str(total_amount),

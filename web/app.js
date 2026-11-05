@@ -180,21 +180,23 @@ function updateStatusSummary(runtime) {
 }
 
 function updateRowsSummary(rows = []) {
-  const readyRows = rows.filter((row) => row.ready || (row.valid && row.cross_ready));
-  const invalidRows = rows.length - readyRows.length;
+  const readyRows = rows.filter((row) => row.ready);
+  const invalidRows = rows.filter((row) => !row.valid || !row.cross_ready || row.unconfirmed).length;
+  const duplicates = rows.filter((row) => row.duplicate_of).length;
+  const sent = rows.filter((row) => row.already_sent && !row.duplicate_of).length;
   const total = readyRows.reduce((sum, row) => sum + Number(String(row.amount || "0").replace(/,/g, "")), 0);
 
   readyRowsMetric.textContent = `${readyRows.length}/${rows.length}`;
-  readyRowsMetric.dataset.tone = invalidRows ? "warn" : "ok";
+  readyRowsMetric.dataset.tone = invalidRows || duplicates ? "warn" : "ok";
   rowsHint.textContent = rows.length
     ? invalidRows
       ? `${invalidRows} fila(s) requieren revision.`
-      : "Todas las filas pueden procesarse."
+      : `${sent} ya registradas; ${duplicates} coinciden con otra fila.`
     : "No hay filas cargadas.";
 
   amountMetric.textContent = formatMoney(total);
   amountHint.textContent = readyRows.length
-    ? "Total de filas listas."
+    ? "Total pendiente de enviar."
     : "Sin pagos listos.";
 }
 
@@ -294,7 +296,13 @@ async function api(path, options = {}) {
     headers: { "Accept": "application/json" },
     ...options,
   });
-  const data = await response.json();
+  const body = await response.text();
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch {
+    throw new Error(`El servidor no devolvio una respuesta valida (HTTP ${response.status}). Consulta el estado antes de reintentar: el proceso puede haber continuado.`);
+  }
   if (!response.ok || data.ok === false) {
     throw new Error(data.error || `Error HTTP ${response.status}`);
   }
@@ -358,20 +366,29 @@ function renderRows(rows) {
   rowCount.textContent = `${rows.length} filas`;
   updateRowsSummary(rows);
   if (!rows.length) {
-    rowsBody.innerHTML = '<tr><td colspan="10">No hay filas de pago para procesar.</td></tr>';
+    rowsBody.innerHTML = '<tr><td colspan="11">No hay filas de pago para procesar.</td></tr>';
     return;
   }
   rowsBody.innerHTML = rows.map((row) => `
     ${(() => {
-      const details = row.issues?.length
+      let details = row.issues?.length
         ? row.issues.map((issue) => `${issue.field}: ${issue.message}`).join(" | ")
         : row.cross_ready
           ? "Lista para enviar"
           : isOtherIncomeMode()
             ? "Faltan datos de otros ingresos"
             : "Falta documento cruce";
-      const status = row.valid && row.cross_ready ? "Lista" : "Revisar";
-      const statusClass = row.valid && row.cross_ready ? "state-ok" : "state-warn";
+      let status = row.ready ? "Lista" : "Revisar";
+      if (row.duplicate_of) {
+        status = "Coincide";
+        details = `Coincide con la fila ${row.duplicate_of}. Si es otro pago real, agrega su referencia en Nota; conserva la nota del pago ya enviado.`;
+      } else if (row.already_sent) {
+        status = "Ya registrado";
+        details = "Envio confirmado previamente. No cambies su nota para evitar otro recibo.";
+      } else if (row.unconfirmed) {
+        details = "Respuesta no confirmada: verifica en Siesa antes de reintentar.";
+      }
+      const statusClass = row.ready || (row.already_sent && !row.duplicate_of) ? "state-ok" : "state-warn";
       return `
     <tr>
       <td>${escapeHtml(row.source_row)}</td>
@@ -381,6 +398,7 @@ function renderRows(rows) {
       <td>${escapeHtml(row.payment_date)}</td>
       <td>${escapeHtml(row.method || "-")}</td>
       <td>${escapeHtml(row.amount)}</td>
+      <td class="detail-cell">${escapeHtml(row.note || "-")}</td>
       <td>${escapeHtml(row.flow)}</td>
       <td class="${statusClass}">${status}</td>
       <td class="detail-cell">${escapeHtml(details)}</td>
@@ -398,14 +416,18 @@ async function loadRows(announce = true) {
     if (!announce) {
       return;
     }
-    const readyRows = data.rows.filter((row) => row.ready || (row.valid && row.cross_ready));
+    const readyRows = data.rows.filter((row) => row.ready);
+    const duplicates = data.rows.filter((row) => row.duplicate_of);
+    const invalidRows = data.rows.filter((row) => !row.valid || !row.cross_ready || row.unconfirmed);
     setResult(
       "Sheets revisado",
       `${readyRows.length} de ${data.rows.length} fila(s) estan listas para procesar.`,
-      readyRows.length === data.rows.length
-        ? ["Puedes ejecutar Preflight para confirmar el total antes de enviar."]
-        : ["Corrige las filas marcadas como Revisar en la tabla."],
-      readyRows.length === data.rows.length ? "ok" : "warn",
+      [
+        "Puedes ejecutar Preflight para confirmar el importe pendiente.",
+        ...(duplicates.length ? [`Filas que coinciden: ${duplicates.map(row => row.source_row).join(", ")}. Si son pagos distintos, diferencia sus notas.`] : []),
+        ...(invalidRows.length ? ["Corrige las filas marcadas como Revisar en la tabla."] : []),
+      ],
+      duplicates.length || invalidRows.length ? "warn" : "ok",
     );
   });
 }
@@ -433,6 +455,8 @@ async function preflight() {
       [
         `Filas revisadas: ${preflight.rows_checked}`,
         `Filas listas: ${preflight.ready_rows}`,
+        `Ya registradas: ${preflight.already_sent_rows.length}`,
+        `Coinciden con otra fila: ${preflight.duplicate_rows.join(", ") || "ninguna"}`,
         `Filas invalidas: ${preflight.invalid_rows.length}`,
         isOtherIncomeMode()
           ? "Cruce de cartera: no aplica"
@@ -501,6 +525,13 @@ async function activateSiesa() {
         "warn",
       );
       renderRows(preflightData.rows);
+      return;
+    }
+    if (!preflight.ready_rows) {
+      renderRows(preflightData.rows);
+      setResult("Sin pagos nuevos para enviar", "Los pagos ya registrados se conservan sin reenviar.", [
+        ...(preflight.duplicate_rows.length ? [`Revisa las filas ${preflight.duplicate_rows.join(", ")}: si son pagos reales distintos, completa una nota diferente en el pago pendiente.`] : []),
+      ], preflight.duplicate_rows.length ? "warn" : "info");
       return;
     }
     if (!window.confirm(`Se crearan ${preflight.ready_rows} recibo(s) real(es) por ${formatMoney(preflight.total_ready_amount)}. Los ya enviados se omitiran. Continuar?`)) {

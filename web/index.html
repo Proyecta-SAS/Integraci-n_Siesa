@@ -80,12 +80,12 @@
             <small id="connectionHint">Validando configuracion.</small>
           </article>
           <article class="summary-card">
-            <span>Filas listas</span>
+            <span>Pagos nuevos</span>
             <strong id="readyRowsMetric">0</strong>
             <small id="rowsHint">Sin lectura de Sheets.</small>
           </article>
           <article class="summary-card">
-            <span>Valor listo</span>
+            <span>Valor pendiente</span>
             <strong id="amountMetric">$0</strong>
             <small id="amountHint">Total que se enviaria.</small>
           </article>
@@ -137,6 +137,7 @@
             <h3>Filas detectadas</h3>
             <span id="rowCount">0 filas</span>
           </div>
+          <p class="payment-note-hint">Si hay dos pagos reales iguales, escribe una referencia distinta en la Nota de cada pago pendiente. Conserva la nota de los pagos ya enviados para evitar otro recibo.</p>
           <div class="table-wrap">
             <table>
               <thead>
@@ -148,6 +149,7 @@
                   <th>Fecha</th>
                   <th>Metodo</th>
                   <th>Valor</th>
+                  <th>Nota / referencia</th>
                   <th>Ruta</th>
                   <th>Estado</th>
                   <th>Detalle</th>
@@ -155,7 +157,7 @@
               </thead>
               <tbody id="rowsBody">
                 <tr>
-                  <td colspan="10">Sin datos cargados.</td>
+                  <td colspan="11">Sin datos cargados.</td>
                 </tr>
               </tbody>
             </table>
