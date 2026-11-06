@@ -20,16 +20,18 @@ function app() {
   return { context, elements };
 }
 
-test("matching notes are visible and confirmed rows are excluded from pending totals", () => {
+test("possible duplicates remain ready and confirmed rows are excluded from pending totals", () => {
   const { context, elements } = app();
   const base = { customer: "Cliente", amount: "1250872", valid: true, cross_ready: true, issues: [] };
   context.renderRows([
     { ...base, source_row: 11, note: "Primero", already_sent: true, ready: false },
-    { ...base, source_row: 12, note: "Primero", duplicate_of: 11, already_sent: true, ready: false },
+    { ...base, source_row: 12, note: "Primero", duplicate_of: 11, already_sent: false, ready: true },
   ]);
-  assert.match(elements.get("#rowsBody").innerHTML, /Coincide con la fila 11/);
+  assert.match(elements.get("#rowsBody").innerHTML, /Posible duplicado: coincide con la fila 11/);
+  assert.match(elements.get("#rowsBody").innerHTML, /no bloquea el envio a Siesa/);
   assert.match(elements.get("#rowsBody").innerHTML, /Ya registrado/);
-  assert.equal(elements.get("#readyRowsMetric").textContent, "0/2");
+  assert.equal(elements.get("#readyRowsMetric").textContent, "1/2");
+  assert.equal(elements.get("#amountMetric").textContent, context.formatMoney("1250872"));
   context.renderRows([
     { ...base, source_row: 11, note: "Primero", already_sent: true, ready: false },
     { ...base, source_row: 12, note: "Segundo pago <confirmado>", ready: true },
@@ -37,6 +39,17 @@ test("matching notes are visible and confirmed rows are excluded from pending to
   assert.equal(elements.get("#readyRowsMetric").textContent, "1/2");
   assert.equal(elements.get("#amountMetric").textContent, context.formatMoney("1250872"));
   assert.match(elements.get("#rowsBody").innerHTML, /Segundo pago &lt;confirmado&gt;/);
+});
+
+test("a successful send displays its possible duplicate warning", async () => {
+  const { context, elements } = app();
+  await context.summarizeSyncResult({ result: {
+    sent: 2, processed: 2, possible_duplicates: 1,
+    warnings: [{ source_row: 12, message: "Posible duplicado: coincide con la fila 11." }],
+  } }, "send");
+  assert.match(elements.get("#resultList").innerHTML, /Posible duplicado/);
+  assert.match(elements.get("#resultMessage").textContent, /2 recibo/);
+  assert.equal(elements.get("#resultTitle").dataset.tone, "warn");
 });
 
 test("a plain upstream error asks to check status before retrying", async () => {

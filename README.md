@@ -25,23 +25,22 @@ El flujo principal queda parametrizado como `SIESA_RECIBO_FLUJO=otros_ingresos`:
 
 ### Dos pagos iguales del mismo cliente
 
-Si son dos movimientos bancarios reales, use una `Nota` distinta en cada pago,
-preferiblemente con su referencia bancaria: `Transferencia 12345` y
-`Transferencia 67890`. Si no dispone de la referencia, agregue una descripcion
-que distinga el segundo pago, por ejemplo `Segundo pago confirmado`, conservando
-el texto original que permita conciliarlo. La identidad del pago incluye fecha,
-tercero, valor, nota y cuenta bancaria; no depende del numero de fila.
+Cada fila pendiente se envia a Siesa aunque coincidan fecha, tercero, valor,
+nota y cuenta bancaria con otra fila. La pantalla muestra `Posible duplicado`
+y la bitacora y el resultado de la activacion conservan el aviso. La coincidencia
+no bloquea el envio ni exige cambiar la nota.
 
-La pantalla muestra la nota y avisa cuando una fila coincide con otra. Las filas
-ya confirmadas aparecen como `Ya registrado` y no se suman al importe pendiente.
-Para recuperar un segundo pago omitido por coincidencia, cambie solo su nota
-pendiente y vuelva a revisar el lote. No modifique la nota de un pago enviado:
-una nota diferente representa un nuevo pago. Cambiar solo mayusculas, acentos,
-espacios o puntuacion no basta; use un numero o texto que realmente lo distinga.
+Cada ocurrencia del mismo pago mantiene su propia llave: la primera conserva
+la llave historica y las siguientes agregan un ordinal, sin depender del numero
+absoluto de fila. Asi, dos filas iguales crean dos recibos y repetir la activacion
+no vuelve a crear esos recibos. Agregar otra fila igual permite un recibo adicional.
+Las filas ya confirmadas aparecen como `Ya registrado` y no se suman al importe
+pendiente. Una nota diferente sigue representando un nuevo pago.
 
-El identificador y el estado historico se conservan. Repetir la activacion con
-las mismas notas no crea otros recibos. Una respuesta sin confirmar requiere
-conciliacion en Siesa antes de volver a intentar.
+Conserve las filas de la bandeja y no edite sus datos una vez enviadas. Si se
+eliminan pagos iguales, no es posible distinguirlos entre si por su contenido.
+Las respuestas sin confirmar y los estados historicos `Cargado` sin comprobante
+individual requieren conciliacion antes de reintentar; no se borran automaticamente.
 
 Actualizacion de soporte del 2026-10-29: con el plano Connekta corregido, las dos referencias se envian como fecha del pago `AAAAMMDD` y los importes como decimales simples, sin signo `+` ni ceros de relleno. La llave interna de deduplicacion se conserva. Ver [correccion, muestra exitosa y validacion pendiente](docs/mapeo_campos.md#correccion-comunicada-por-soporte-el-2026-10-29).
 

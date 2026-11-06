@@ -183,7 +183,7 @@ function updateRowsSummary(rows = []) {
   const readyRows = rows.filter((row) => row.ready);
   const invalidRows = rows.filter((row) => !row.valid || !row.cross_ready || row.unconfirmed).length;
   const duplicates = rows.filter((row) => row.duplicate_of).length;
-  const sent = rows.filter((row) => row.already_sent && !row.duplicate_of).length;
+  const sent = rows.filter((row) => row.already_sent).length;
   const total = readyRows.reduce((sum, row) => sum + Number(String(row.amount || "0").replace(/,/g, "")), 0);
 
   readyRowsMetric.textContent = `${readyRows.length}/${rows.length}`;
@@ -191,7 +191,7 @@ function updateRowsSummary(rows = []) {
   rowsHint.textContent = rows.length
     ? invalidRows
       ? `${invalidRows} fila(s) requieren revision.`
-      : `${sent} ya registradas; ${duplicates} coinciden con otra fila.`
+      : `${sent} ya registradas; ${duplicates} posibles duplicados (no bloquean el envio).`
     : "No hay filas cargadas.";
 
   amountMetric.textContent = formatMoney(total);
@@ -210,6 +210,7 @@ async function summarizeSyncResult(data, mode) {
   const skipped = Number(result.skipped_duplicates || 0);
   const processed = Number(result.processed || 0);
   const sheetErrors = result.sheet_errors || [];
+  const duplicateWarnings = (result.warnings || []).map((item) => `Fila ${item.source_row}: ${item.message}`);
 
   if (sheetErrors.length) {
     setResult(
@@ -218,6 +219,7 @@ async function summarizeSyncResult(data, mode) {
       [
         `Filas sin cargar: ${failed}`,
         `Filas por corregir: ${invalid}`,
+        ...duplicateWarnings,
         ...sheetErrors.map(item => `Fila ${item.source_row}: ${item.error}`),
       ],
       "warn",
@@ -232,10 +234,11 @@ async function summarizeSyncResult(data, mode) {
       [
         `Filas procesadas: ${processed}`,
         `Recibos enviados: ${sent}`,
-        `Duplicados omitidos: ${skipped}`,
+        `Ya registrados omitidos: ${skipped}`,
+        ...duplicateWarnings,
         "Despues de validar, vuelve a bloquear el envio real.",
       ],
-      "ok",
+      duplicateWarnings.length ? "warn" : "ok",
     );
     return;
   }
@@ -247,9 +250,10 @@ async function summarizeSyncResult(data, mode) {
       [
         `Filas procesadas: ${processed}`,
         `Filas listas para enviar: ${dryRun}`,
-        `Duplicados detectados: ${skipped}`,
+        `Ya registrados omitidos: ${skipped}`,
+        ...duplicateWarnings,
       ],
-      "ok",
+      duplicateWarnings.length ? "warn" : "ok",
     );
     return;
   }
@@ -260,7 +264,8 @@ async function summarizeSyncResult(data, mode) {
       `Enviadas: ${sent}`,
       `Fallidas: ${failed}`,
       `Invalidas antes de enviar: ${invalid}`,
-      `Duplicadas: ${skipped}`,
+      `Ya registradas omitidas: ${skipped}`,
+      ...duplicateWarnings,
     ];
     const failureItems = currentFailureItems(result.failures);
     if (failureItems.length) {
@@ -284,7 +289,8 @@ async function summarizeSyncResult(data, mode) {
       `Probadas sin enviar: ${dryRun}`,
       `Invalidas: ${invalid}`,
       `Fallidas: ${failed}`,
-      `Duplicadas: ${skipped}`,
+      `Ya registradas omitidas: ${skipped}`,
+      ...duplicateWarnings,
     ],
     failed || invalid ? "warn" : "info",
   );
@@ -379,16 +385,17 @@ function renderRows(rows) {
             ? "Faltan datos de otros ingresos"
             : "Falta documento cruce";
       let status = row.ready ? "Lista" : "Revisar";
-      if (row.duplicate_of) {
-        status = "Coincide";
-        details = `Coincide con la fila ${row.duplicate_of}. Si es otro pago real, agrega su referencia en Nota; conserva la nota del pago ya enviado.`;
-      } else if (row.already_sent) {
+      if (row.already_sent) {
         status = "Ya registrado";
         details = "Envio confirmado previamente. No cambies su nota para evitar otro recibo.";
       } else if (row.unconfirmed) {
         details = "Respuesta no confirmada: verifica en Siesa antes de reintentar.";
       }
-      const statusClass = row.ready || (row.already_sent && !row.duplicate_of) ? "state-ok" : "state-warn";
+      if (row.duplicate_of) {
+        if (row.ready) status = "Posible duplicado";
+        details += ` Posible duplicado: coincide con la fila ${row.duplicate_of}. La coincidencia no bloquea el envio a Siesa.`;
+      }
+      const statusClass = (row.ready && !row.duplicate_of) || row.already_sent ? "state-ok" : "state-warn";
       return `
     <tr>
       <td>${escapeHtml(row.source_row)}</td>
@@ -424,7 +431,7 @@ async function loadRows(announce = true) {
       `${readyRows.length} de ${data.rows.length} fila(s) estan listas para procesar.`,
       [
         "Puedes ejecutar Preflight para confirmar el importe pendiente.",
-        ...(duplicates.length ? [`Filas que coinciden: ${duplicates.map(row => row.source_row).join(", ")}. Si son pagos distintos, diferencia sus notas.`] : []),
+        ...(duplicates.length ? [`Posibles duplicados: filas ${duplicates.map(row => row.source_row).join(", ")}. Se enviaran si estan pendientes y sus datos son validos.`] : []),
         ...(invalidRows.length ? ["Corrige las filas marcadas como Revisar en la tabla."] : []),
       ],
       duplicates.length || invalidRows.length ? "warn" : "ok",
@@ -448,7 +455,7 @@ async function preflight() {
     writeJson(resultOutput, data.preflight);
     const preflight = data.preflight;
     setResult(
-      preflight.ready ? "Preflight aprobado" : "Preflight con novedades",
+      preflight.ready ? (preflight.duplicate_rows.length ? "Preflight aprobado con avisos" : "Preflight aprobado") : "Preflight con novedades",
       preflight.ready
         ? `${preflight.ready_rows} fila(s) listas por ${formatMoney(preflight.total_ready_amount)}.`
         : "Hay filas que deben corregirse antes de enviar.",
@@ -456,13 +463,13 @@ async function preflight() {
         `Filas revisadas: ${preflight.rows_checked}`,
         `Filas listas: ${preflight.ready_rows}`,
         `Ya registradas: ${preflight.already_sent_rows.length}`,
-        `Coinciden con otra fila: ${preflight.duplicate_rows.join(", ") || "ninguna"}`,
+        `Posibles duplicados (no bloquean el envio): ${preflight.duplicate_rows.join(", ") || "ninguno"}`,
         `Filas invalidas: ${preflight.invalid_rows.length}`,
         isOtherIncomeMode()
           ? "Cruce de cartera: no aplica"
           : `Sin documento cruce: ${preflight.missing_cross_rows.length}`,
       ],
-      preflight.ready ? "ok" : "warn",
+      preflight.ready && !preflight.duplicate_rows.length ? "ok" : "warn",
     );
   });
 }
@@ -530,7 +537,7 @@ async function activateSiesa() {
     if (!preflight.ready_rows) {
       renderRows(preflightData.rows);
       setResult("Sin pagos nuevos para enviar", "Los pagos ya registrados se conservan sin reenviar.", [
-        ...(preflight.duplicate_rows.length ? [`Revisa las filas ${preflight.duplicate_rows.join(", ")}: si son pagos reales distintos, completa una nota diferente en el pago pendiente.`] : []),
+        ...(preflight.duplicate_rows.length ? [`Posibles duplicados: filas ${preflight.duplicate_rows.join(", ")}. Ya se reviso el estado individual de cada pago.`] : []),
       ], preflight.duplicate_rows.length ? "warn" : "info");
       return;
     }

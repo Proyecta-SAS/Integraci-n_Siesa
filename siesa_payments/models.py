@@ -113,6 +113,8 @@ class PaymentRow:
     cross_auxiliary: str
     source_row: int
     source_cells: tuple[str, ...] = ()
+    occurrence: int = 1
+    duplicate_of: int | None = None
 
     @classmethod
     def from_raw(cls, data: dict[str, Any], source_row: int) -> "PaymentRow":
@@ -176,6 +178,10 @@ class PaymentRow:
             normalize_header(self.note),
             normalize_header(self.bank_account),
         ]
+        # Preserve every historical key for the first matching payment. Each
+        # additional occurrence is a separate receipt, stable across row moves.
+        if self.occurrence > 1:
+            parts.append(f"occurrence:{self.occurrence}")
         digest = hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
         return digest[:32]
 

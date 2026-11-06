@@ -188,7 +188,6 @@ def inspect_rows(limit: int | None = None, activator: str = "alianza") -> dict[s
     mapping = MappingConfig.load(runtime.mapping_file)
     validator = PaymentValidator(mapping.required_transaction_type)
     state = SyncState(runtime.state_file)
-    seen: dict[str, int] = {}
     rows = []
     for payment in iter_payments(runtime.input_csv, runtime.sheets_csv_url, mapping):
         issues = validator.validate(payment)
@@ -196,11 +195,9 @@ def inspect_rows(limit: int | None = None, activator: str = "alianza") -> dict[s
         flow_key = "otros_ingresos_28050505" if _uses_other_income_mode() else flow.key
         cross_ready, cross_source = _cross_status(payment)
         key = payment.idempotency_key()
-        duplicate_of = seen.get(key)
+        duplicate_of = payment.duplicate_of
         already_sent = state.contains(key)
         unconfirmed = bool(state.get("uncertain_receipts", {}).get(key))
-        if not issues and cross_ready:
-            seen.setdefault(key, payment.source_row)
         row_issues = [asdict(issue) for issue in issues]
         if not cross_ready:
             row_issues.append(
@@ -227,10 +224,11 @@ def inspect_rows(limit: int | None = None, activator: str = "alianza") -> dict[s
                 "amount": str(payment.amount),
                 "note": payment.note,
                 "duplicate_of": duplicate_of,
+                "possible_duplicate": duplicate_of is not None,
                 "already_sent": already_sent,
                 "unconfirmed": unconfirmed,
                 "valid": not issues,
-                "ready": not issues and cross_ready and not already_sent and not duplicate_of and not unconfirmed,
+                "ready": not issues and cross_ready and not already_sent and not unconfirmed,
                 "issues": row_issues,
             }
         )
@@ -263,7 +261,7 @@ def preflight(limit: int | None = None, activator: str = "alianza") -> dict[str,
             "send_unlocked": runtime["send_unlocked"],
             "rows_checked": len(rows),
             "ready_rows": len(ready_rows),
-            "already_sent_rows": [row["source_row"] for row in rows if row["already_sent"] and not row["duplicate_of"]],
+            "already_sent_rows": [row["source_row"] for row in rows if row["already_sent"]],
             "duplicate_rows": [row["source_row"] for row in rows if row["duplicate_of"]],
             "invalid_rows": invalid_rows,
             "missing_cross_rows": missing_cross_rows,
@@ -306,6 +304,9 @@ def _audit_events(
                 "payment_date": event.get("payment_date"),
                 "siesa_status_code": event.get("siesa_status_code"),
                 "siesa_response": event.get("siesa_response"),
+                "possible_duplicate": event.get("possible_duplicate", False),
+                "duplicate_of": event.get("duplicate_of"),
+                "message": event.get("message"),
             }
         )
     return events[-limit:]

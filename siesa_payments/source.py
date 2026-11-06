@@ -86,6 +86,7 @@ def read_csv_text(
         return []
 
     payments: list[PaymentRow] = []
+    occurrences: dict[str, tuple[int, int]] = {}
     for row_number, row in enumerate(reader, start=2):
         if not any(cell.strip() for cell in row):
             continue
@@ -97,6 +98,10 @@ def read_csv_text(
             on_error(row_number, operational_cells(row), str(exc))
             continue
         if payment is not None:
+            key = payment.idempotency_key()
+            count, first_row = occurrences.get(key, (0, row_number))
+            occurrences[key] = (count + 1, first_row)
+            payment = replace(payment, occurrence=count + 1, duplicate_of=first_row if count else None)
             payments.append(payment)
     return payments
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.6 - 2026-11-06
+
+- Envia cada fila de pago pendiente aunque coincida con otra, sin exigir una nota diferente.
+- Muestra `Posible duplicado` en el panel, el resultado de la activacion y la bitacora; el aviso no bloquea el envio a Siesa.
+- Identifica por separado cada ocurrencia, conserva la llave historica de la primera y evita reenviar los recibos ya confirmados.
+- Prueba duplicados identicos, reintentos, pagos historicos, envio de una sola fila y nuevas ocurrencias agregadas a la hoja.
+
 ## 0.2.5 - 2026-11-05
 
 - Muestra la nota de cada pago y las filas que coinciden, con instrucciones para distinguir dos pagos reales iguales mediante su referencia o nota.

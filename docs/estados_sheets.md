@@ -57,6 +57,14 @@ rechaza habilitar la escritura en Sheets.
 
 ## Proteccion de las filas y reintentos
 
+La coincidencia de los datos de dos filas se muestra como `Posible duplicado`
+en el panel y la bitacora, pero cada fila pendiente puede enviarse a Siesa.
+El estado confirmado se conserva por ocurrencia del pago: repetir la activacion
+no reenvia las filas ya confirmadas. Las llaves historicas siguen correspondiendo
+a la primera ocurrencia. Si una fila antes omitida por coincidencia ya aparece
+como `Cargado` en Sheets, debe conciliarse antes de cambiar ese estado; no se
+elimina esa proteccion automaticamente.
+
 El webhook agrega las columnas que falten despues de todas las columnas existentes
 y reutiliza las que ya tengan esos nombres exactos. No escribe sobre A:K ni sobre
 las columnas historicas de Alegra. Antes de actualizar compara los valores visibles
