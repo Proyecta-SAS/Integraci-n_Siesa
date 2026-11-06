@@ -13,6 +13,32 @@ from siesa_payments.source import read_csv_text
 
 
 class WebServerAuditTests(TestCase):
+    def test_preflight_includes_pending_duplicates_and_counts_each_confirmed_occurrence(self) -> None:
+        csv_text = (
+            "Cuenta bancaria,Fecha,Contacto,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,Nota\n"
+            "BANCOLOMBIA,03/11/2026,Consumidor Final,Ingreso,Transferencia,28050505,1,1000,Pago\n"
+            "BANCOLOMBIA,03/11/2026,Consumidor Final,Ingreso,Transferencia,28050505,1,1000,Pago\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp, patch.dict("os.environ", {"SIESA_RECIBO_FLUJO": "otros_ingresos"}):
+            root = Path(tmp)
+            source = root / "source.csv"
+            source.write_text(csv_text, encoding="utf-8")
+            runtime = replace(RuntimeConfig.from_env(), input_csv=str(source), state_file=root / "state.json")
+            mapping = web_server.MappingConfig.load(runtime.mapping_file)
+            with patch.object(web_server, "_runtime_for_request", return_value=runtime), patch.object(
+                web_server, "_redacted_runtime", return_value={"ready_to_send": True, "send_unlocked": True}
+            ):
+                pending = web_server.preflight()
+                self.assertTrue(pending["preflight"]["ready"])
+                self.assertEqual(pending["preflight"]["ready_rows"], 2)
+                self.assertEqual(pending["preflight"]["total_ready_amount"], "2000")
+                self.assertEqual(pending["preflight"]["duplicate_rows"], [3])
+                keys = [p.idempotency_key() for p in read_csv_text(csv_text, mapping)]
+                runtime.state_file.write_text(json.dumps({"processed_keys": keys}), encoding="utf-8")
+                confirmed = web_server.preflight()
+                self.assertEqual(confirmed["preflight"]["ready_rows"], 0)
+                self.assertEqual(confirmed["preflight"]["already_sent_rows"], [2, 3])
+
     def test_preview_excludes_confirmed_payments_and_flags_matching_notes(self) -> None:
         csv_text = (
             "Cuenta bancaria,Fecha,Contacto,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,Nota\n"
@@ -33,7 +59,11 @@ class WebServerAuditTests(TestCase):
                 before = web_server.preflight()
                 self.assertEqual(before["rows"][1]["duplicate_of"], 2)
                 self.assertTrue(before["rows"][0]["already_sent"])
-                self.assertEqual(before["preflight"]["ready_rows"], 0)
+                self.assertEqual(before["preflight"]["ready_rows"], 1)
+                self.assertEqual(before["preflight"]["total_ready_amount"], "1250872")
+                self.assertTrue(before["rows"][1]["ready"])
+                self.assertFalse(before["rows"][1]["already_sent"])
+                self.assertTrue(before["rows"][1]["possible_duplicate"])
                 self.assertEqual(before["preflight"]["duplicate_rows"], [3])
                 self.assertEqual(before["preflight"]["invalid_rows"], [])
                 # Change only the second note; the confirmed payment remains untouched.

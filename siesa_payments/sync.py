@@ -22,6 +22,8 @@ class SyncResult:
     sent: int = 0
     dry_run: int = 0
     skipped_duplicates: int = 0
+    possible_duplicates: int = 0
+    warnings: tuple[dict[str, Any], ...] = ()
     invalid: int = 0
     failed: int = 0
     failures: tuple[dict[str, Any], ...] = ()
@@ -73,6 +75,9 @@ def _event(
         "identity_number": payment.identity_number,
         "amount": str(payment.amount),
         "payment_date": payment.payment_date.isoformat(),
+        "possible_duplicate": payment.duplicate_of is not None,
+        "duplicate_of": payment.duplicate_of,
+        "occurrence": payment.occurrence,
     }
     if flow is not None:
         event["flow"] = flow.key
@@ -169,10 +174,12 @@ class PaymentSyncService:
             "sent": 0,
             "dry_run": 0,
             "skipped_duplicates": 0,
+            "possible_duplicates": 0,
             "invalid": 0,
             "failed": 0,
         }
         failures: list[dict[str, Any]] = []
+        warnings: list[dict[str, Any]] = []
         sheet_errors: list[dict[str, Any]] = []
         sheet_updates = 0
 
@@ -207,6 +214,12 @@ class PaymentSyncService:
             counters["processed"] += 1
             flow = decide_flow(payment)
             key = payment.idempotency_key()
+            if payment.duplicate_of is not None:
+                warning = {"source_row": payment.source_row, "duplicate_of": payment.duplicate_of,
+                           "message": f"Posible duplicado: coincide con la fila {payment.duplicate_of}. La coincidencia no bloquea el envio a Siesa."}
+                warnings.append(warning)
+                counters["possible_duplicates"] += 1
+                self.log.write(_event("possible_duplicate", payment, flow=flow, message=warning["message"]))
             # A successful receipt stays successful even if its source cells
             # later fail validation. Repair a missing Sheets result without sending.
             if self.state.contains(key):
@@ -318,7 +331,7 @@ class PaymentSyncService:
                 )
 
         self.state.save()
-        return SyncResult(**counters, failures=tuple(failures), sheet_updates=sheet_updates,
+        return SyncResult(**counters, warnings=tuple(warnings), failures=tuple(failures), sheet_updates=sheet_updates,
                           sheet_errors=tuple(sheet_errors))
 
 
