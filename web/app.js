@@ -28,6 +28,10 @@ const crossHeader = document.querySelector("#crossHeader");
 
 let currentApplicationMode = "cartera";
 let selectedActivator = "alianza";
+const sendJobs = new Map();
+const sendAllowed = new Map();
+const pendingSendRequests = new Set();
+const jobMonitors = new Set();
 
 const moneyFormatter = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -35,11 +39,15 @@ const moneyFormatter = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 
-function showModule() {
+async function showModule() {
   launcherPanel.classList.add("hidden");
   modulePanel.classList.remove("hidden");
-  loadStatus();
-  loadRows();
+  await loadRows(false);
+  try {
+    await loadStatus();
+  } catch (error) {
+    setResult("No se pudo consultar el estado", error.message, ["Vuelve a abrir el modulo para consultar el lote."], "warn");
+  }
 }
 
 function showLauncher() {
@@ -296,9 +304,10 @@ async function summarizeSyncResult(data, mode) {
   );
 }
 
-async function api(path, options = {}) {
+async function api(path, options = {}, activator = selectedActivator) {
   const separator = path.includes("?") ? "&" : "?";
-  const response = await fetch(`${path}${separator}activator=${encodeURIComponent(selectedActivator)}`, {
+  const response = await fetch(`${path}${separator}activator=${encodeURIComponent(activator)}`, {
+    cache: "no-store",
     headers: { "Accept": "application/json" },
     ...options,
   });
@@ -325,13 +334,23 @@ async function withBusy(button, label, action) {
     writeJson(resultOutput, { ok: false, error: error.message });
     setResult("No se pudo completar", error.message, ["Valida configuración, fila de Sheets o disponibilidad de Siesa."], "warn");
   } finally {
-    button.disabled = false;
+    if (button === sendButton) applySendAvailability();
+    else button.disabled = false;
     button.firstChild.textContent = original;
   }
 }
 
 async function loadStatus() {
-  const data = await api("/api/status");
+  const activator = selectedActivator;
+  sendAllowed.set(activator, false);
+  applySendAvailability();
+  const latest = await api("/api/sync/job", {}, activator);
+  if (selectedActivator !== activator) return;
+  sendJobs.set(activator, latest.job);
+  if (isActiveJob(latest.job)) monitorSendJob(activator);
+  if (latest.job) await showSendJob(latest.job);
+  const data = await api("/api/status", {}, activator);
+  if (selectedActivator !== activator) return;
   writeJson(statusOutput, data.runtime);
   updateStatusSummary(data.runtime);
   const otherIncome = isOtherIncomeMode(data.runtime.application_mode);
@@ -353,6 +372,7 @@ async function loadStatus() {
     resultOutput.textContent = "Modo otros ingresos activo: no cruza FVE; envia auxiliar 28050505.";
   }
   const cooldownActive = data.runtime.cooldown?.cooldown_active;
+  sendAllowed.set(activator, data.runtime.ready_to_send && data.runtime.send_unlocked && !cooldownActive);
   if (!data.runtime.send_unlocked || cooldownActive) {
     sendButton.disabled = true;
     sendButton.classList.add("locked");
@@ -365,6 +385,83 @@ async function loadStatus() {
     sendButton.querySelector("small").textContent = otherIncome
       ? "Crea recibo por otros ingresos"
       : "Crea recibo en Siesa";
+  }
+  applySendAvailability();
+}
+
+function isActiveJob(job) {
+  return job && ["queued", "running"].includes(job.status);
+}
+
+function applySendAvailability() {
+  const running = isActiveJob(sendJobs.get(selectedActivator));
+  sendButton.disabled = running || pendingSendRequests.has(selectedActivator) || !sendAllowed.get(selectedActivator);
+  if (running) {
+    sendButton.querySelector("small").textContent = "Lote en curso; consultando avance";
+    sendStatusMetric.textContent = "En proceso";
+    sendHint.textContent = "Puedes cerrar y volver a abrir para consultar el resultado.";
+  }
+}
+
+async function showSendJob(job) {
+  writeJson(resultOutput, job);
+  if (isActiveJob(job)) {
+    const p = job.progress || {};
+    setResult("Envio en proceso", p.total !== undefined
+      ? `${p.completed || 0} de ${p.total} filas procesadas. Siesa ha confirmado ${p.sent || 0} recibo(s).`
+      : "Preparando el lote y leyendo Sheets.", [
+      "El lote continua aunque cierres esta pagina. Al volver, podras consultar su resultado.",
+      ...(p.current_source_row ? [`Procesando fila ${p.current_source_row}.`] : []),
+      `Filas por revisar: ${(p.failed || 0) + (p.invalid || 0)}.`,
+    ]);
+  } else if (job.status === "completed") {
+    await summarizeSyncResult(job.outcome, "send");
+  } else {
+    setResult(job.status === "interrupted" ? "Lote interrumpido" : "Lote con novedades", job.error, [
+      `Recibos confirmados antes de detenerse: ${job.progress?.sent || 0}.`,
+      "Revisa Sheets y los pagos sin confirmar en Siesa antes de reintentar.",
+    ], "warn");
+  }
+}
+
+async function monitorSendJob(activator) {
+  if (jobMonitors.has(activator)) return;
+  jobMonitors.add(activator);
+  try {
+    while (isActiveJob(sendJobs.get(activator))) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      let data;
+      try {
+        data = await api("/api/sync/job", {}, activator);
+      } catch (error) {
+        if (selectedActivator === activator) {
+          setResult("Consultando el estado del lote", "Se perdio temporalmente la conexion de seguimiento.", [
+            "El envio puede seguir en proceso. La consulta se reintentara automaticamente.",
+          ], "warn");
+          applySendAvailability();
+        }
+        continue;
+      }
+      sendJobs.set(activator, data.job);
+      if (selectedActivator === activator) {
+        if (data.job) await showSendJob(data.job);
+        else setResult("Sin lote activo", "El servidor no tiene un lote registrado para esta fuente.", [
+          "Revisa Sheets antes de iniciar otro envio.",
+        ], "warn");
+        applySendAvailability();
+        if (!isActiveJob(data.job)) {
+          try {
+            await loadRows(false);
+            await loadStatus();
+          } catch (error) {
+            // Keep the known terminal result if refreshing Sheets is unavailable.
+            if (data.job) await showSendJob(data.job);
+          }
+        }
+      }
+    }
+  } finally {
+    jobMonitors.delete(activator);
   }
 }
 
@@ -475,80 +572,104 @@ async function preflight() {
 }
 
 async function activateSiesa() {
-  await withBusy(sendButton, "Activando...", async () => {
-    const status = await api("/api/status");
-    if (!status.runtime.connector_url_configured) {
-      const error = {
-        ok: false,
-        error: "Falta SIESA_CONNECTOR_URL. Copia la Request URL exacta desde Ver Guia > Copiar URL en el conector 261128.",
-      };
-      writeJson(resultOutput, error);
-      setResult("Envio bloqueado", error.error, ["Completa la URL del conector y vuelve a revisar."], "warn");
-      return;
-    }
-    if (!status.runtime.ready_to_send) {
-      const error = {
-        ok: false,
-        error: `Faltan datos operativos antes de enviar en ${environmentLabel(status.runtime)}.`,
-        missing: status.runtime.missing_send_env,
-      };
-      writeJson(resultOutput, error);
-      setResult("Envio bloqueado", error.error, status.runtime.missing_send_env, "warn");
-      return;
-    }
-    if (!status.runtime.send_unlocked) {
-      const error = {
-        ok: false,
-        error: "Envio bloqueado por seguridad. Active SIESA_ALLOW_SEND=true solo cuando quiera crear recibos.",
-      };
-      writeJson(resultOutput, error);
-      setResult("Envio bloqueado", "La proteccion de envio real esta activa.", ["Activa SIESA_ALLOW_SEND=true solo durante la prueba autorizada."], "warn");
-      return;
-    }
-    if (status.runtime.cooldown?.cooldown_active) {
-      const error = {
-        ok: false,
-        error: "Envio bloqueado por cooldown de 15 minutos.",
-        retry_after_seconds: status.runtime.cooldown.retry_after_seconds,
-        next_activation_at: status.runtime.cooldown.next_activation_at,
-      };
-      writeJson(resultOutput, error);
-      setResult("Espere antes de reenviar", error.error, [formatCooldown(error.retry_after_seconds)], "warn");
-      return;
-    }
-    const preflightData = await api("/api/preflight");
-    const preflight = preflightData.preflight;
-    if (!preflight.ready) {
-      const error = {
-        ok: false,
-        error: "El lote tiene filas pendientes de corregir; no se enviara parcialmente.",
-        rows: preflight.invalid_rows,
-      };
-      writeJson(resultOutput, error);
-      setResult(
-        "Lote sin activar",
-        "Corrige las filas marcadas como Revisar antes de crear recibos.",
-        error.rows.length ? [`Filas: ${error.rows.join(", ")}`] : ["Revisa la configuracion antes de activar."],
-        "warn",
-      );
-      renderRows(preflightData.rows);
-      return;
-    }
-    if (!preflight.ready_rows) {
-      renderRows(preflightData.rows);
-      setResult("Sin pagos nuevos para enviar", "Los pagos ya registrados se conservan sin reenviar.", [
-        ...(preflight.duplicate_rows.length ? [`Posibles duplicados: filas ${preflight.duplicate_rows.join(", ")}. Ya se reviso el estado individual de cada pago.`] : []),
-      ], preflight.duplicate_rows.length ? "warn" : "info");
-      return;
-    }
-    if (!window.confirm(`Se crearan ${preflight.ready_rows} recibo(s) real(es) por ${formatMoney(preflight.total_ready_amount)}. Los ya enviados se omitiran. Continuar?`)) {
-      return;
-    }
-    const data = await api("/api/sync/send", { method: "POST" });
-    writeJson(resultOutput, data);
-    await summarizeSyncResult(data, "send");
-    await loadRows(false);
-  });
+  const activator = selectedActivator;
+  if (isActiveJob(sendJobs.get(activator)) || pendingSendRequests.has(activator)) return;
+  pendingSendRequests.add(activator);
+  try {
+    await withBusy(sendButton, "Activando...", async () => {
+      const latest = await api("/api/sync/job", {}, activator);
+      sendJobs.set(activator, latest.job);
+      if (isActiveJob(latest.job)) {
+        await showSendJob(latest.job);
+        monitorSendJob(activator);
+        return;
+      }
+      const status = await api("/api/status", {}, activator);
+      if (!status.runtime.connector_url_configured) {
+        const error = {
+          ok: false,
+          error: "Falta SIESA_CONNECTOR_URL. Copia la Request URL exacta desde Ver Guia > Copiar URL en el conector 261128.",
+        };
+        writeJson(resultOutput, error);
+        setResult("Envio bloqueado", error.error, ["Completa la URL del conector y vuelve a revisar."], "warn");
+        return;
+      }
+      if (!status.runtime.ready_to_send) {
+        const error = {
+          ok: false,
+          error: `Faltan datos operativos antes de enviar en ${environmentLabel(status.runtime)}.`,
+          missing: status.runtime.missing_send_env,
+        };
+        writeJson(resultOutput, error);
+        setResult("Envio bloqueado", error.error, status.runtime.missing_send_env, "warn");
+        return;
+      }
+      if (!status.runtime.send_unlocked) {
+        const error = {
+          ok: false,
+          error: "Envio bloqueado por seguridad. Active SIESA_ALLOW_SEND=true solo cuando quiera crear recibos.",
+        };
+        writeJson(resultOutput, error);
+        setResult("Envio bloqueado", "La proteccion de envio real esta activa.", ["Activa SIESA_ALLOW_SEND=true solo durante la prueba autorizada."], "warn");
+        return;
+      }
+      if (status.runtime.cooldown?.cooldown_active) {
+        const error = {
+          ok: false,
+          error: "Envio bloqueado por cooldown de 15 minutos.",
+          retry_after_seconds: status.runtime.cooldown.retry_after_seconds,
+          next_activation_at: status.runtime.cooldown.next_activation_at,
+        };
+        writeJson(resultOutput, error);
+        setResult("Espere antes de reenviar", error.error, [formatCooldown(error.retry_after_seconds)], "warn");
+        return;
+      }
+      const preflightData = await api("/api/preflight", {}, activator);
+      const preflight = preflightData.preflight;
+      if (!preflight.ready) {
+        const error = {
+          ok: false,
+          error: "El lote tiene filas pendientes de corregir; no se enviara parcialmente.",
+          rows: preflight.invalid_rows,
+        };
+        writeJson(resultOutput, error);
+        setResult(
+          "Lote sin activar",
+          "Corrige las filas marcadas como Revisar antes de crear recibos.",
+          error.rows.length ? [`Filas: ${error.rows.join(", ")}`] : ["Revisa la configuracion antes de activar."],
+          "warn",
+        );
+        renderRows(preflightData.rows);
+        return;
+      }
+      if (!preflight.ready_rows) {
+        renderRows(preflightData.rows);
+        setResult("Sin pagos nuevos para enviar", "Los pagos ya registrados se conservan sin reenviar.", [
+          ...(preflight.duplicate_rows.length ? [`Posibles duplicados: filas ${preflight.duplicate_rows.join(", ")}. Ya se reviso el estado individual de cada pago.`] : []),
+        ], preflight.duplicate_rows.length ? "warn" : "info");
+        return;
+      }
+      if (selectedActivator !== activator) return;
+      if (!window.confirm(`Se crearan ${preflight.ready_rows} recibo(s) real(es) por ${formatMoney(preflight.total_ready_amount)}. Los ya enviados se omitiran. Continuar?`)) {
+        return;
+      }
+      try {
+        const data = await api("/api/sync/send", { method: "POST" }, activator);
+        sendJobs.set(activator, data.job);
+        await showSendJob(data.job);
+      } catch (error) {
+        // A lost acknowledgement must be resolved by a read, never another POST.
+        sendJobs.set(activator, { status: "queued", progress: {} });
+        setResult("Consultando el estado del envio", "No se recibio la confirmacion inicial del servidor.", [
+          "Se consultara el lote sin volver a enviarlo. Puedes volver a abrir el modulo para verificarlo.",
+        ], "warn");
+      }
+      monitorSendJob(activator);
+    });
+  } finally {
+    pendingSendRequests.delete(activator);
+    applySendAvailability();
+  }
 }
 
 activatorButtons.forEach((button) => {

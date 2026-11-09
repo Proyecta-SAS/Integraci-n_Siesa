@@ -9,12 +9,13 @@ from decimal import Decimal
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import parse_qs, urlparse
 
 from . import __version__
 from .config import MappingConfig, RuntimeConfig, load_env_file
 from .flow import decide_flow
+from .jobs import SendJobs
 from .source import iter_payments
 from .state import SyncState
 from .sync import PaymentSyncService, SendCooldownError
@@ -24,6 +25,7 @@ from .validation import PaymentValidator
 ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = ROOT / "web"
 ACTIVATORS_FILE = ROOT / "config" / "siesa_activators.json"
+SEND_JOBS = SendJobs()
 REQUIRED_SEND_ENV = (
     "SIESA_F_CIA",
     "SIESA_ID_CO",
@@ -312,14 +314,17 @@ def _audit_events(
     return events[-limit:]
 
 
-def run_sync(send: bool, source_row: int | None = None, activator: str = "alianza") -> dict[str, Any]:
-    runtime = _runtime_for_request(dry_run=not send, activator=activator)
+def run_sync(send: bool, source_row: int | None = None, activator: str = "alianza",
+             on_progress: Callable[[dict[str, Any]], None] | None = None,
+             runtime: RuntimeConfig | None = None) -> dict[str, Any]:
+    runtime = runtime or _runtime_for_request(dry_run=not send, activator=activator)
     if send and not runtime.allow_send:
         raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
     mapping = MappingConfig.load(runtime.mapping_file)
     result = PaymentSyncService(runtime, mapping).sync(
         dry_run=not send,
         source_rows={source_row} if source_row is not None else None,
+        on_progress=on_progress,
     )
     return {
         "runtime": _redacted_runtime(runtime, activator),
@@ -327,6 +332,16 @@ def run_sync(send: bool, source_row: int | None = None, activator: str = "alianz
         "source_row": source_row,
         "result": asdict(result),
     }
+
+
+def start_send(source_row: int | None = None, activator: str = "alianza") -> dict[str, Any]:
+    runtime = _runtime_for_request(dry_run=False, activator=activator)
+    if not runtime.allow_send:
+        raise PermissionError("envio bloqueado: configure SIESA_ALLOW_SEND=true para crear recibos")
+    return SEND_JOBS.start(
+        runtime.state_file, activator,
+        lambda progress: run_sync(True, source_row, activator, on_progress=progress, runtime=runtime),
+    )
 
 
 def _source_row_from_query(parsed: Any) -> int | None:
@@ -365,6 +380,10 @@ class AppHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/status":
                 self._json({"ok": True, "runtime": _redacted_runtime(_runtime_for_request(dry_run=True, activator=activator), activator)})
                 return
+            if parsed.path == "/api/sync/job":
+                runtime = _runtime_for_request(dry_run=True, activator=activator)
+                self._json({"ok": True, "job": SEND_JOBS.status(runtime.state_file)})
+                return
             if parsed.path == "/api/payments":
                 params = parse_qs(parsed.query)
                 limit = _optional_limit(params)
@@ -394,7 +413,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, **run_sync(send=False, source_row=source_row, activator=activator)})
                 return
             if parsed.path == "/api/sync/send":
-                self._json({"ok": True, **run_sync(send=True, source_row=source_row, activator=activator)})
+                self._json({"ok": True, "job": start_send(source_row=source_row, activator=activator)},
+                           status=HTTPStatus.ACCEPTED)
                 return
             self._json({"ok": False, "error": "endpoint no encontrado"}, status=HTTPStatus.NOT_FOUND)
         except SendCooldownError as exc:
@@ -414,6 +434,7 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_response(status.value)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 

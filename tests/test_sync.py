@@ -109,6 +109,53 @@ class SyncTests(TestCase):
             self.assertEqual(event["flow"], "create_person_contact_receipt")
             self.assertIn("siesa_target", event)
 
+    def test_progress_reports_settled_rows_and_final_counts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            csv_path = Path("samples/alegra_payments.csv")
+            runtime = replace(runtime_for(root, csv_path, False), send_cooldown_minutes=0)
+            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "261128", "Recibo",
+                                    transport=FakeTransport())
+            updates = []
+            result = PaymentSyncService(runtime, self.mapping, client).sync(on_progress=updates.append)
+            self.assertEqual(updates[0]["completed"], 0)
+            self.assertEqual(updates[0]["sent"], 0)
+            self.assertEqual(updates[-1]["completed"], result.processed)
+            self.assertEqual(updates[-1]["sent"], result.sent)
+            self.assertIsNone(updates[-1]["current_source_row"])
+
+    def test_process_exit_during_request_keeps_inflight_receipt_blocked_on_retry(self) -> None:
+        class ProcessExit(BaseException):
+            pass
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime = replace(runtime_for(root, Path("samples/alegra_payments.csv"), False),
+                              send_cooldown_minutes=0)
+            transport = FakeTransport()
+            client = SiesaHubClient("https://siesa.example", "key", "token", "1", "261128", "Recibo",
+                                    transport=transport)
+            with patch.object(client, "register_cash_receipt", side_effect=ProcessExit):
+                with self.assertRaises(ProcessExit):
+                    PaymentSyncService(runtime, self.mapping, client).sync()
+            persisted = json.loads(runtime.state_file.read_text(encoding="utf-8"))
+            self.assertEqual(len(persisted["uncertain_receipts"]), 1)
+            retry = PaymentSyncService(runtime, self.mapping, client).sync()
+            self.assertEqual(retry.failed, 1)
+            self.assertEqual(retry.sent, 0)
+            self.assertEqual(transport.calls, [])
+
+    def test_simulation_does_not_overwrite_confirmations_saved_during_its_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime = runtime_for(root, Path("samples/alegra_payments.csv"), True)
+
+            def concurrently_confirm(progress):
+                runtime.state_file.write_text(json.dumps({"processed_keys": ["new-confirmation"]}))
+
+            PaymentSyncService(runtime, self.mapping).sync(on_progress=concurrently_confirm)
+            self.assertEqual(json.loads(runtime.state_file.read_text())["processed_keys"], ["new-confirmation"])
+
     def test_sync_can_limit_to_one_source_row(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
