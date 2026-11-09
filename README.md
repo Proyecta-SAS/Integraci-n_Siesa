@@ -159,6 +159,30 @@ web: python -m siesa_payments.web_server --host 0.0.0.0
 
 Railway debe recibir las variables `SIESA_*` como variables de entorno. Para produccion se debe usar un estado persistente o volumen para `SIESA_STATE_FILE`, porque el filesystem del contenedor puede reiniciarse.
 
+### Lotes que tardan varios minutos
+
+La activacion real responde inmediatamente con HTTP `202` y el identificador
+del lote. El servidor procesa los pagos en segundo plano; la pantalla consulta
+`GET /api/sync/job?activator=alianza` cada dos segundos y muestra filas procesadas,
+recibos confirmados y novedades. El operador puede cerrar la pagina y volver
+a abrir el modulo para recuperar el avance o el resultado de la ultima activacion.
+Una perdida de conexion de seguimiento solo reintenta consultas, nunca el envio.
+
+El estado del ultimo lote se guarda junto a `SIESA_STATE_FILE`, en
+`<archivo-de-estado>.job.json`; ambos deben quedar dentro del volumen persistente.
+El bloqueo `<archivo-de-estado>.send.lock` permite un solo lote real por fuente,
+incluso cuando varias personas activan a la vez. Una segunda solicitud durante
+el proceso devuelve el mismo lote. El despliegue previsto usa una instancia
+del servidor y su volumen; este bloqueo requiere un filesystem compartido para
+coordinar procesos, no coordina replicas con discos independientes.
+
+Si el servidor se reinicia, el lote se muestra como `interrupted` y no se retoma
+automaticamente. Cada pago se marca como sin confirmar antes de llamar al ERP
+y se conserva asi si se pierde la respuesta o se interrumpe el proceso. Los
+recibos confirmados permanecen registrados; concilie cualquier pago sin confirmar
+en Siesa antes de resolverlo y activar los pendientes. El numero de recibo sigue
+requiriendo la consulta en ERP cuando el conector no lo devuelve.
+
 ## Estado QA validado
 
 El 2026-09-09 se ejecuto una prueba real en QA con respuesta exitosa de Siesa y verificacion visual en ERP: recibo `RC-00000006`, cliente `1000456076`, fecha `2026-06-30`, valor `$1,000`, caja `01`, medio `EFE-EFECTIVO`.

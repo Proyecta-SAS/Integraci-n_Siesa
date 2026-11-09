@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.7 - 2026-11-09
+
+- Procesa los envios reales en segundo plano y responde HTTP 202 para evitar que un lote largo dependa de la conexion de cinco minutos del navegador.
+- Muestra el avance y recupera el ultimo resultado al volver a abrir el modulo; los errores de seguimiento reintentan consultas sin volver a enviar.
+- Guarda el lote en el volumen y permite una sola activacion por fuente, devolviendo el mismo lote ante solicitudes simultaneas.
+- Detecta lotes interrumpidos por reinicio y conserva el pago en curso como sin confirmar antes de llamar a Siesa, para exigir conciliacion antes de reintentar.
+- Escribe el estado de forma atomica y evita que una simulacion sobrescriba confirmaciones de un envio concurrente.
+- Verifica activaciones simultaneas, progreso, recuperacion de resultados, perdida de conexion y corte durante la llamada al ERP con pruebas simuladas, sin envios reales.
+
 ## 0.2.6 - 2026-11-06
 
 - Envia cada fila de pago pendiente aunque coincida con otra, sin exigir una nota diferente.
