@@ -439,7 +439,8 @@ class AppHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _static(self, path: str) -> None:
-        relative = "index.html" if path in {"", "/"} else path.lstrip("/")
+        page_paths = {"", "/", "/resumen", "/resultados", "/pagos", "/integracion"}
+        relative = "index.html" if path in page_paths else path.lstrip("/")
         target = (WEB_ROOT / relative).resolve()
         if WEB_ROOT not in target.parents and target != WEB_ROOT:
             self.send_error(HTTPStatus.FORBIDDEN.value)

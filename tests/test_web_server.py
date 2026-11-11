@@ -13,6 +13,24 @@ from siesa_payments.source import read_csv_text
 
 
 class WebServerAuditTests(TestCase):
+    def test_pages_can_be_opened_and_refreshed_directly(self) -> None:
+        expected = (web_server.WEB_ROOT / "index.html").read_bytes()
+        for path in ("/", "/resumen", "/resultados", "/pagos", "/integracion"):
+            with self.subTest(path=path):
+                handler = Mock()
+                web_server.AppHandler._static(handler, path)
+                handler.send_response.assert_called_once_with(200)
+                handler.wfile.write.assert_called_once_with(expected)
+                handler.send_error.assert_not_called()
+
+    def test_page_routes_preserve_missing_file_and_traversal_protection(self) -> None:
+        for path, status in (("/pagina-inexistente", 404), ("/../.env", 403)):
+            with self.subTest(path=path):
+                handler = Mock()
+                web_server.AppHandler._static(handler, path)
+                handler.send_error.assert_called_once_with(status)
+                handler.wfile.write.assert_not_called()
+
     def test_preflight_includes_pending_duplicates_and_counts_each_confirmed_occurrence(self) -> None:
         csv_text = (
             "Cuenta bancaria,Fecha,Contacto,Tipo de Transaccion,Metodo de pago,Concepto,Cantidad,Valor,Nota\n"
