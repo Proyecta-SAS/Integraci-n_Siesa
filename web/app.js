@@ -1,9 +1,5 @@
-const activatorButtons = document.querySelectorAll(".activator-button");
 const selectedCompany = document.querySelector("#selectedCompany");
 const sourceLabel = document.querySelector("#sourceLabel");
-const launcherPanel = document.querySelector("#launcherPanel");
-const modulePanel = document.querySelector("#modulePanel");
-const backButton = document.querySelector("#backButton");
 const loadRowsButton = document.querySelector("#loadRowsButton");
 const preflightButton = document.querySelector("#preflightButton");
 const dryRunButton = document.querySelector("#dryRunButton");
@@ -40,19 +36,12 @@ const moneyFormatter = new Intl.NumberFormat("es-CO", {
 });
 
 async function showModule() {
-  launcherPanel.classList.add("hidden");
-  modulePanel.classList.remove("hidden");
   await loadRows(false);
   try {
     await loadStatus();
   } catch (error) {
     setResult("No se pudo consultar el estado", error.message, ["Vuelve a abrir el modulo para consultar el lote."], "warn");
   }
-}
-
-function showLauncher() {
-  modulePanel.classList.add("hidden");
-  launcherPanel.classList.remove("hidden");
 }
 
 function writeJson(element, data) {
@@ -672,21 +661,6 @@ async function activateSiesa() {
   }
 }
 
-activatorButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    activatorButtons.forEach((item) => item.classList.remove("active"));
-    button.classList.add("active");
-    selectedCompany.textContent = button.dataset.company;
-    selectedActivator = button.dataset.activator;
-    if (button.dataset.enabled === "true") {
-      showModule();
-      return;
-    }
-    resultOutput.textContent = `${button.dataset.company} queda disponible cuando configuremos su Sheets y conector.`;
-  });
-});
-
-backButton.addEventListener("click", showLauncher);
 loadRowsButton.addEventListener("click", loadRows);
 preflightButton.addEventListener("click", preflight);
 dryRunButton.addEventListener("click", dryRun);

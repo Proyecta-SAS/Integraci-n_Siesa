@@ -4,167 +4,219 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Avanzar | Activadores Siesa</title>
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="/styles.css?v=20261111-paginas">
   </head>
-  <body>
-    <main class="launcher" aria-label="Activadores Sistemas Contables Siesa">
-      <section class="launcher-panel" id="launcherPanel">
-        <div class="logo-frame">
-          <img src="./assets/avanzar-logo-color.svg" alt="Avanzar">
+  <body class="app-ui siesa-ui">
+    <aside class="lateral" id="sidebar" aria-label="Menú principal">
+      <div class="lateral__marca">
+        <img class="lateral__logo" src="/assets/avanzar-logo-color.svg" alt="Avanzar" width="135" height="42">
+        <button class="lateral__colapsar" id="collapseSidebarButton" type="button" aria-label="Contraer menú" title="Contraer menú" aria-controls="sidebar">
+          <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>
+        </button>
+        <button class="boton-icono lateral__cerrar" id="closeSidebarButton" type="button" aria-label="Cerrar menú">
+          <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12 M6 18 18 6"/></svg>
+        </button>
+      </div>
+      <nav class="lateral__nav" aria-label="Navegación principal">
+        <span class="lateral__seccion">Operación</span>
+        <a class="item-lateral item-lateral--activo" id="backButton" href="/resumen" data-page="resumen" aria-current="page" title="Resumen operativo">
+          <span class="item-lateral__ico"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-7 9 7v11H3Z M9 20v-8h6v8"/></svg></span>
+          <span class="item-lateral__txt">Resumen</span>
+        </a>
+        <div class="grupo-lateral grupo-lateral--abierto" id="alianzaMenuGroup">
+          <button class="activator-button item-lateral" id="alianzaMenuButton" type="button" data-company="Siesa Alianza" data-activator="alianza" data-enabled="true" aria-expanded="true" aria-controls="alianzaSubmenu" title="Siesa Alianza">
+            <span class="item-lateral__ico"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4Z M8 15v-4 M12 15V7 M16 15v-6"/></svg></span>
+            <span class="item-lateral__txt">Siesa Alianza</span>
+            <span class="grupo-lateral__chevron"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+          </button>
+          <div class="grupo-lateral__menu" id="alianzaSubmenu">
+            <div class="grupo-lateral__lista menu-actions">
+              <span class="menu-label">Páginas</span>
+              <a class="subitem-lateral page-link" href="/resultados" data-page="resultados"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5Z M8 8h8 M8 12h8 M8 16h5"/></svg><span>Resultados</span></a>
+              <a class="subitem-lateral page-link" href="/pagos" data-page="filas"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18 M9 3v18 M9 15h12"/></svg><span>Pagos y validación</span></a>
+              <a class="subitem-lateral page-link" href="/integracion" data-page="integracion"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16 M16 3l4 4-4 4 M20 17H4 M8 13l-4 4 4 4"/></svg><span>Datos de integración</span></a>
+              <span class="menu-label menu-label--actions">Acciones</span>
+              <button class="action-button subitem-lateral sidebar-action" type="button" id="loadRowsButton">
+                Revisar Sheets
+                <small>Lee todas las filas y valida campos</small>
+                <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18 M9 3v18 M9 15h12"/></svg>
+              </button>
+              <button class="action-button subitem-lateral sidebar-action" type="button" id="preflightButton">
+                Preflight
+                <small>Revisa todo el lote antes de enviar</small>
+                <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H5v17h14V4h-4 M9 2h6v5H9Z M8 12l2 2 5-5 M8 18h8"/></svg>
+              </button>
+              <button class="action-button subitem-lateral sidebar-action" type="button" id="dryRunButton">
+                Probar simulacion
+                <small>Genera payload sin crear recibo</small>
+                <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7Z"/></svg>
+              </button>
+              <button class="action-button danger boton boton--primario sidebar-action sidebar-action--send" type="button" id="sendButton" disabled>
+                Activar Siesa
+                <small>Crea todos los recibos pendientes validados</small>
+                <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z M22 2 11 13"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
-
-        <div class="title-block">
-          <h1>Activadores Sistemas Contables Siesa</h1>
-          <span aria-hidden="true"></span>
+      </nav>
+      <div class="lateral__pie">
+        <div class="sidebar-caption">
+          <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16 M16 3l4 4-4 4 M20 17H4 M8 13l-4 4 4 4"/></svg>
+          <span class="item-lateral__txt">Google Sheets <span aria-hidden="true">→</span> Siesa<small>Integración contable</small></span>
         </div>
+      </div>
+    </aside>
 
-        <nav class="activator-grid" aria-label="Activador Siesa disponible">
-          <button class="activator-button active" type="button" data-company="Siesa Alianza" data-activator="alianza" data-enabled="true">
-            Siesa Alianza
-          </button>
-        </nav>
+    <div class="lienzo" id="workspace">
+      <header class="barra-superior">
+        <button class="boton-icono barra-superior__hamb" id="openSidebarButton" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+          <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18 M3 12h18 M3 18h18"/></svg>
+        </button>
+        <h1 class="barra-superior__titulo">Activadores Siesa</h1>
+        <div class="barra-superior__der header-context">
+          <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span>Sistemas contables</span>
+        </div>
+      </header>
+      <main class="contenido" aria-label="Activadores Sistemas Contables Siesa">
+        <section class="module-panel bloque" id="modulePanel" aria-label="Modulo Siesa Alianza">
+          <header class="module-header bloque__hd">
+            <div class="module-heading">
+              <span class="bloque__sub eyebrow">Siesa Alianza</span>
+              <h2 class="bloque__titulo" id="pageTitle" tabindex="-1">Resumen operativo</h2>
+              <p class="bloque__sub" id="pageDescription">Estado de la conexión, pagos pendientes y pasos del proceso.</p>
+            </div>
+            <strong class="env-pill pildora pildora--info" id="envPill">Cargando ambiente...</strong>
+          </header>
 
-        <section class="status-panel" aria-live="polite">
-          <div>
-            <span class="status-label">Modulo activo</span>
-            <strong id="selectedCompany">Siesa Alianza</strong>
-          </div>
-          <div>
-            <span class="status-label">Fuente</span>
-            <strong id="sourceLabel">Google Sheets / Ingreso - Egreso</strong>
-          </div>
-          <div>
-            <span class="status-label">Destino</span>
-            <strong>Recibos de caja / Otros ingresos</strong>
-          </div>
-          <div>
-            <span class="status-label">Conector</span>
-            <strong>261128 - API_v2_ReciboCaja</strong>
-          </div>
-        </section>
-      </section>
+          <section class="workspace-page" id="resumen" aria-labelledby="pageTitle">
+            <section class="summary-grid tarjetas" aria-label="Resumen operativo">
+              <article class="summary-card tarjeta">
+                <span class="tarjeta__rotulo">Estado</span>
+                <strong class="tarjeta__valor" id="connectionStatus">Revisando...</strong>
+                <small id="connectionHint">Validando configuracion.</small>
+              </article>
+              <article class="summary-card tarjeta tarjeta--ok">
+                <span class="tarjeta__rotulo">Pagos nuevos</span>
+                <strong class="tarjeta__valor" id="readyRowsMetric">0</strong>
+                <small id="rowsHint">Sin lectura de Sheets.</small>
+              </article>
+              <article class="summary-card tarjeta tarjeta--cian">
+                <span class="tarjeta__rotulo">Valor pendiente</span>
+                <strong class="tarjeta__valor" id="amountMetric">$0</strong>
+                <small id="amountHint">Total que se enviaria.</small>
+              </article>
+              <article class="summary-card tarjeta tarjeta--warn">
+                <span class="tarjeta__rotulo">Envio real</span>
+                <strong class="tarjeta__valor" id="sendStatusMetric">Bloqueado</strong>
+                <small id="sendHint">Pendiente de autorizacion.</small>
+              </article>
+            </section>
 
-      <section class="module-panel hidden" id="modulePanel" aria-label="Modulo Siesa Alianza">
-        <header class="module-header">
-          <button class="back-button" type="button" id="backButton">Volver</button>
-          <div>
-            <span>Siesa Alianza</span>
-            <h2>Recibos de caja desde Google Sheets</h2>
-          </div>
-          <strong class="env-pill" id="envPill">Cargando ambiente...</strong>
-        </header>
-
-        <section class="action-grid">
-          <button class="action-button" type="button" id="loadRowsButton">
-            Revisar Sheets
-            <small>Lee todas las filas y valida campos</small>
-          </button>
-          <button class="action-button" type="button" id="preflightButton">
-            Preflight
-            <small>Revisa todo el lote antes de enviar</small>
-          </button>
-          <button class="action-button" type="button" id="dryRunButton">
-            Probar simulacion
-            <small>Genera payload sin crear recibo</small>
-          </button>
-          <button class="action-button danger" type="button" id="sendButton">
-            Activar Siesa
-            <small>Crea todos los recibos pendientes validados</small>
-          </button>
-        </section>
-
-        <section class="summary-grid" aria-label="Resumen operativo">
-          <article class="summary-card">
-            <span>Estado</span>
-            <strong id="connectionStatus">Revisando...</strong>
-            <small id="connectionHint">Validando configuracion.</small>
-          </article>
-          <article class="summary-card">
-            <span>Pagos nuevos</span>
-            <strong id="readyRowsMetric">0</strong>
-            <small id="rowsHint">Sin lectura de Sheets.</small>
-          </article>
-          <article class="summary-card">
-            <span>Valor pendiente</span>
-            <strong id="amountMetric">$0</strong>
-            <small id="amountHint">Total que se enviaria.</small>
-          </article>
-          <article class="summary-card">
-            <span>Envio real</span>
-            <strong id="sendStatusMetric">Bloqueado</strong>
-            <small id="sendHint">Pendiente de autorizacion.</small>
-          </article>
-        </section>
-
-        <section class="operator-panel" aria-live="polite">
-          <div>
-            <span>Resultado de la ultima accion</span>
-            <h3 id="resultTitle">Listo para revisar Sheets</h3>
-            <p id="resultMessage">Primero revisa la hoja para confirmar que las filas tengan cliente, valor, fecha y concepto.</p>
-          </div>
-          <ul class="result-list" id="resultList">
-            <li>Sin accion ejecutada.</li>
-          </ul>
-        </section>
-
-        <details class="technical-panel">
-          <summary>Detalle tecnico</summary>
-          <section class="result-grid">
-            <article class="result-card">
-              <span>Configuracion</span>
-              <pre id="statusOutput">Cargando estado...</pre>
-            </article>
-            <article class="result-card">
-              <span>Respuesta tecnica</span>
-              <pre id="resultOutput">Selecciona una accion.</pre>
-            </article>
+            <section class="flow-panel panel" aria-label="Pasos del proceso">
+              <span class="section-label">Flujo recomendado</span>
+              <ol>
+                <li>Revisar Sheets</li>
+                <li>Preflight</li>
+                <li>Probar simulacion</li>
+                <li>Activar Siesa y confirmar el lote</li>
+                <li>Validar los recibos creados en Siesa</li>
+              </ol>
+            </section>
           </section>
-        </details>
 
-        <section class="flow-panel" aria-label="Pasos del proceso">
-          <span>Flujo recomendado</span>
-          <ol>
-            <li>Revisar Sheets</li>
-            <li>Preflight</li>
-            <li>Probar simulacion</li>
-            <li>Activar Siesa y confirmar el lote</li>
-            <li>Validar los recibos creados en Siesa</li>
-          </ol>
-        </section>
+          <section class="workspace-page" id="resultados" aria-labelledby="pageTitle" hidden>
+            <section class="operator-panel panel" aria-live="polite">
+              <div>
+                <span class="section-label">Resultado de la ultima accion</span>
+                <h3 id="resultTitle">Listo para revisar Sheets</h3>
+                <p id="resultMessage">Primero revisa la hoja para confirmar que las filas tengan cliente, valor, fecha y concepto.</p>
+              </div>
+              <ul class="result-list" id="resultList">
+                <li>Sin accion ejecutada.</li>
+              </ul>
+            </section>
+          </section>
 
-        <section class="table-card">
-          <div class="table-header">
-            <h3>Filas detectadas</h3>
-            <span id="rowCount">0 filas</span>
-          </div>
-          <p class="payment-note-hint">Si hay dos pagos reales iguales, escribe una referencia distinta en la Nota de cada pago pendiente. Conserva la nota de los pagos ya enviados para evitar otro recibo.</p>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fila</th>
-                  <th>Cliente</th>
-                  <th>Identificacion</th>
-                  <th id="crossHeader">Aplicacion</th>
-                  <th>Fecha</th>
-                  <th>Metodo</th>
-                  <th>Valor</th>
-                  <th>Nota / referencia</th>
-                  <th>Ruta</th>
-                  <th>Estado</th>
-                  <th>Detalle</th>
-                </tr>
-              </thead>
-              <tbody id="rowsBody">
-                <tr>
-                  <td colspan="11">Sin datos cargados.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <section class="workspace-page" id="filas" aria-labelledby="pageTitle" hidden>
+            <section class="table-card panel">
+              <div class="table-header">
+                <h3 class="panel__hd">Filas detectadas</h3>
+                <span class="pildora pildora--info" id="rowCount">0 filas</span>
+              </div>
+              <p class="payment-note-hint">Si hay dos pagos reales iguales, escribe una referencia distinta en la Nota de cada pago pendiente. Conserva la nota de los pagos ya enviados para evitar otro recibo.</p>
+              <div class="table-wrap tabla-wrap">
+                <table class="tabla">
+                  <thead>
+                    <tr>
+                      <th>Fila</th>
+                      <th>Cliente</th>
+                      <th>Identificacion</th>
+                      <th id="crossHeader">Aplicacion</th>
+                      <th>Fecha</th>
+                      <th>Metodo</th>
+                      <th class="tabla__num">Valor</th>
+                      <th>Nota / referencia</th>
+                      <th>Ruta</th>
+                      <th>Estado</th>
+                      <th>Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rowsBody">
+                    <tr>
+                      <td colspan="11">Sin datos cargados.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section class="workspace-page" id="integracion" aria-labelledby="pageTitle" hidden>
+            <section class="integration-context panel" id="launcherPanel" aria-live="polite">
+              <div>
+                <span class="status-label">Modulo activo</span>
+                <strong id="selectedCompany">Siesa Alianza</strong>
+              </div>
+              <div>
+                <span class="status-label">Fuente</span>
+                <strong id="sourceLabel">Google Sheets / Ingreso - Egreso</strong>
+              </div>
+              <div>
+                <span class="status-label">Destino</span>
+                <strong>Recibos de caja / Otros ingresos</strong>
+              </div>
+              <div>
+                <span class="status-label">Conector</span>
+                <strong>261128 - API_v2_ReciboCaja</strong>
+              </div>
+            </section>
+
+            <details class="technical-panel panel">
+              <summary>Detalle tecnico</summary>
+              <section class="result-grid">
+                <article class="result-card">
+                  <span class="section-label">Configuracion</span>
+                  <pre id="statusOutput">Cargando estado...</pre>
+                </article>
+                <article class="result-card">
+                  <span class="section-label">Respuesta tecnica</span>
+                  <pre id="resultOutput">Selecciona una accion.</pre>
+                </article>
+              </section>
+            </details>
+          </section>
         </section>
-      </section>
-    </main>
-    <script src="./app.js?v=0.2.7"></script>
+      </main>
+      <footer class="pie">
+        <span class="pie__cliente">&copy; 2026 Activadores Siesa</span>
+        <span class="pie__sep" aria-hidden="true">—</span>
+        <span class="pie__by">Developed by <a href="https://proyectasolutions.co/" target="_blank" rel="noopener noreferrer" class="pie__brand">Proyecta</a></span>
+      </footer>
+    </div>
+    <div class="lateral-fondo" id="sidebarBackdrop" aria-hidden="true"></div>
+    <script src="/app.js?v=20261111-menu"></script>
+    <script src="/navigation.js?v=20261111-paginas"></script>
   </body>
 </html>
