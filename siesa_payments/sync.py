@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from http.client import IncompleteRead
+from time import monotonic
 from typing import Any, Callable, Iterator
+from urllib.error import URLError
 
 from .config import MappingConfig, RuntimeConfig
 from .flow import FlowDecision, decide_flow
@@ -58,6 +61,19 @@ def _validate_send_payload(payload: dict[str, Any]) -> None:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _response_failure_kind(error: Exception) -> str:
+    # Preserve diagnostic categories, never raw exception text: it can contain
+    # connector URLs, credentials or fragments of an upstream response.
+    cause = error.reason if isinstance(error, URLError) and isinstance(error.reason, Exception) else error
+    if isinstance(cause, TimeoutError):
+        return "timeout"
+    if isinstance(cause, IncompleteRead):
+        return "incomplete_response"
+    if isinstance(cause, (OSError, URLError)):
+        return "connection_error"
+    return "transport_error"
 
 
 def _event(
@@ -121,6 +137,7 @@ class PaymentSyncService:
             id_ecosistema=self.runtime.siesa_id_ecosistema,
             nombre_documento=self.runtime.siesa_nombre_documento,
             execute_path=self.runtime.hub_execute_path,
+            timeout=self.runtime.siesa_request_timeout_seconds,
         )
 
     def _last_activation_at(self) -> datetime | None:
@@ -296,21 +313,40 @@ class PaymentSyncService:
             # process is killed after the ERP commits, a retry requires review.
             error = "Respuesta no confirmada; verificar en Siesa antes de reintentar."
             uncertain_receipts = dict(self.state.get("uncertain_receipts", {}))
-            uncertain_receipts[key] = {"error": error, "timestamp": _now(), "source_row": payment.source_row}
+            uncertain_receipts[key] = {
+                "error": error, "timestamp": _now(), "source_row": payment.source_row,
+                "request_timeout_seconds": self.runtime.siesa_request_timeout_seconds,
+            }
             self.state.set("uncertain_receipts", uncertain_receipts)
             self.state.save()
+            request_started = monotonic()
             try:
                 response = client.register_cash_receipt(self.mapping.connector_id, payload, key)
-            except Exception:
+            except Exception as exc:
                 # A timeout can happen after the ERP commits. Require checking
                 # Siesa before another attempt instead of risking a second receipt.
+                diagnostic = {
+                    "error": error,
+                    "failure_kind": _response_failure_kind(exc),
+                    "exception_type": type(exc).__name__,
+                    "request_timeout_seconds": self.runtime.siesa_request_timeout_seconds,
+                    "elapsed_seconds": round(monotonic() - request_started, 3),
+                }
+                uncertain_receipts[key].update(diagnostic)
+                self.state.set("uncertain_receipts", uncertain_receipts)
+                self.state.save()
                 counters["failed"] += 1
                 failures.append({"source_row": payment.source_row, "amount": str(payment.amount),
-                                 "siesa_status_code": None, "siesa_response": {"error": error}})
-                self.log.write(_event("unconfirmed", payment, flow=flow, error=error))
+                                 "siesa_status_code": None, "siesa_response": diagnostic})
+                self.log.write(_event("unconfirmed", payment, flow=flow, error=error,
+                                      siesa_response=diagnostic))
                 write_status(payment.source_row, payment.source_cells, PENDING, error=error)
                 continue
 
+            request_timing = {
+                "request_timeout_seconds": self.runtime.siesa_request_timeout_seconds,
+                "elapsed_seconds": round(monotonic() - request_started, 3),
+            }
             uncertain_receipts.pop(key, None)
             self.state.set("uncertain_receipts", uncertain_receipts)
             if response.ok:
@@ -323,7 +359,8 @@ class PaymentSyncService:
                 # Persist BEFORE touching Sheets so an unavailable webhook cannot
                 # cause a successful receipt to be resent in the next activation.
                 self.state.save()
-                self.log.write(_event("sent", payment, payload=payload, flow=flow, siesa_response=response.data))
+                self.log.write(_event("sent", payment, payload=payload, flow=flow,
+                                      siesa_response=response.data, **request_timing))
                 write_status(payment.source_row, payment.source_cells, LOADED, **details)
             else:
                 self.state.save()
@@ -335,6 +372,7 @@ class PaymentSyncService:
                     flow=flow,
                     siesa_status_code=response.status_code,
                     siesa_response=response.data,
+                    **request_timing,
                 )
                 self.log.write(event)
                 write_status(

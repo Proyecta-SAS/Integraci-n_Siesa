@@ -183,6 +183,38 @@ recibos confirmados permanecen registrados; concilie cualquier pago sin confirma
 en Siesa antes de resolverlo y activar los pendientes. El numero de recibo sigue
 requiriendo la consulta en ERP cuando el conector no lo devuelve.
 
+### Respuestas lentas y sin confirmar
+
+El servicio permite configurar la espera de red del POST al ERP con
+`SIESA_REQUEST_TIMEOUT_SECONDS`; el valor predeterminado es 120 segundos y debe
+ser un entero positivo. Este ajuste se aplica al cliente de Siesa, sin cambiar
+el payload, las referencias contables ni la llave interna del pago. El timeout
+de `urllib` corresponde a operaciones de red bloqueantes; no es un limite total
+garantizado para toda la transaccion.
+La consulta de estado muestra el valor efectivo como `request_timeout_seconds`.
+
+La auditoria registra duracion y espera configurada. Si no se obtiene una
+respuesta, tambien conserva la categoria del fallo y el tipo de excepcion en
+la auditoria y el estado pendiente. No guarda el texto bruto de la excepcion,
+que podria contener una URL privada o credenciales.
+
+Ampliar la espera reduce cortes del cliente ante respuestas lentas; no evita
+una caida de Siesa ni un limite anterior del intermediario. No se agrega ningun
+reintento automatico de creacion: el recibo podria existir aunque se pierda la
+respuesta. Los pagos previamente sin confirmar mantienen su bloqueo y requieren
+conciliacion; este ajuste no los desbloquea ni los reenvia.
+
+Para resolver automaticamente la incertidumbre hace falta un contrato de
+consulta del resultado por identificador unico, o soporte de idempotencia
+confirmado por Siesa. El proyecto envia `Idempotency-Key`, pero no tiene una
+garantia documentada de deduplicacion del lado del conector. Las referencias
+contables por fecha pueden repetirse y no bastan para identificar un recibo.
+No se debe inventar una consulta ni cambiar las referencias validadas para
+suplir esa falta de contrato.
+
+Referencias: [timeout de urllib](https://docs.python.org/3/library/urllib.request.html)
+y [reintentos de solicitudes no idempotentes, RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2).
+
 ## Estado QA validado
 
 El 2026-09-09 se ejecuto una prueba real en QA con respuesta exitosa de Siesa y verificacion visual en ERP: recibo `RC-00000006`, cliente `1000456076`, fecha `2026-06-30`, valor `$1,000`, caja `01`, medio `EFE-EFECTIVO`.

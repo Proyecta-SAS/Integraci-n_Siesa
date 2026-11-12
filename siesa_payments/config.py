@@ -64,6 +64,11 @@ class RuntimeConfig:
     sheets_writeback_enabled: bool = False
     sheets_webhook_url: str | None = None
     sheets_webhook_token: str | None = None
+    siesa_request_timeout_seconds: int = 120
+
+    def __post_init__(self) -> None:
+        if self.siesa_request_timeout_seconds <= 0:
+            raise ValueError("SIESA_REQUEST_TIMEOUT_SECONDS debe ser mayor que cero")
 
     @classmethod
     def from_env(cls) -> "RuntimeConfig":
@@ -93,6 +98,7 @@ class RuntimeConfig:
             sheets_writeback_enabled=_env_bool("SIESA_SHEETS_WRITEBACK_ENABLED", False),
             sheets_webhook_url=os.getenv("SIESA_SHEETS_WEBHOOK_URL") or None,
             sheets_webhook_token=os.getenv("SIESA_SHEETS_WEBHOOK_TOKEN") or None,
+            siesa_request_timeout_seconds=_env_int("SIESA_REQUEST_TIMEOUT_SECONDS", 120),
         )
 
 

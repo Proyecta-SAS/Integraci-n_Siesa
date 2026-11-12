@@ -99,6 +99,7 @@ def _redacted_runtime(runtime: RuntimeConfig, activator: str = "alianza") -> dic
         "dry_run": runtime.dry_run,
         "allow_send": runtime.allow_send,
         "send_cooldown_minutes": runtime.send_cooldown_minutes,
+        "request_timeout_seconds": runtime.siesa_request_timeout_seconds,
         "source": "input_csv" if runtime.input_csv else "google_sheets_csv" if runtime.sheets_csv_url else "missing",
         "input_csv": runtime.input_csv,
         "sheets_csv_url_configured": bool(runtime.sheets_csv_url),
