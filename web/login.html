@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingresar | Activadores Siesa</title>
+  <link rel="stylesheet" href="/styles.css?v=20261112-login">
+</head>
+<body class="app-ui">
+  <main class="acceso">
+    <section class="acceso__tarjeta" aria-labelledby="loginTitle">
+      <img class="login-logo" src="/assets/avanzar-logo-color.svg" alt="Avanzar" width="150" height="50">
+      <span class="login-eyebrow">ACTIVADORES SIESA</span>
+      <h1 class="bloque__titulo" id="loginTitle">Inicia sesión</h1>
+      <p class="bloque__sub">Accede a la integración y al histórico de recibos.</p>
+      <form id="loginForm">
+        <label class="campo"><span>Usuario o correo</span><input id="loginEmail" name="email" type="text" autocomplete="username" maxlength="254" required autofocus></label>
+        <label class="campo"><span>Contraseña</span><input id="loginPassword" name="password" type="password" autocomplete="current-password" maxlength="256" required></label>
+        <p class="login-error" id="loginError" role="alert" hidden></p>
+        <button class="boton boton--primario" id="loginButton" type="submit">Ingresar</button>
+      </form>
+      <p class="login-help">Si necesitas acceso, comunícate con el administrador.</p>
+    </section>
+  </main>
+  <script src="/login.js?v=20261112-login"></script>
+</body>
+</html>

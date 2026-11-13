@@ -278,3 +278,20 @@
 .app-ui .page-link .icono { width: 18px; height: 18px; }
 .app-ui .menu-label { display: block; margin: 10px 12px 8px 26px; color: var(--txt-3); font-size: .64em; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .app-ui .menu-label--actions { margin-top: 18px; }
+
+/* Acceso e histórico: mismo sistema visual, con información recuperada. */
+.app-ui .login-logo { display: block; margin-bottom: 24px; }
+.app-ui .login-eyebrow { display: block; margin-bottom: 8px; color: var(--rojo); font-size: .64em; font-weight: 800; letter-spacing: .08em; }
+.app-ui .login-error { margin-top: 16px; padding: 12px; border-left: 3px solid var(--danger); border-radius: var(--r-sm); background: var(--dan-bg); color: var(--danger); font-size: .85em; }
+.app-ui .login-help { margin-top: 20px; color: var(--txt-3); font-size: .76em; }
+.app-ui .history-metric { flex-direction: column; align-items: flex-start; gap: 8px; }
+.app-ui .history-controls .filtros { align-items: flex-end; }
+.app-ui .history-search { flex: 1 1 220px; }
+.app-ui .history-check { display: flex; align-items: center; gap: 8px; padding-block: 11px; color: var(--txt-2); font-size: .8em; }
+.app-ui .history-note { display: block; margin-top: 14px; }
+.app-ui .history-message { color: var(--txt-3); font-size: .8em; }
+.app-ui .history-table td:nth-child(7), .app-ui .history-table th:nth-child(7) { text-align: left; white-space: normal; }
+.app-ui .history-table .tabla__num { white-space: nowrap; }
+@media (max-width: 560px) {
+  .app-ui .history-controls .campo, .app-ui .history-check { width: 100%; }
+}
