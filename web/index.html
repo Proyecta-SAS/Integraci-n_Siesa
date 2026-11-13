@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Avanzar | Activadores Siesa</title>
-    <link rel="stylesheet" href="/styles.css?v=20261111-paginas">
+    <link rel="stylesheet" href="/styles.css?v=20261112-login">
   </head>
   <body class="app-ui siesa-ui">
     <aside class="lateral" id="sidebar" aria-label="Menú principal">
@@ -35,6 +35,7 @@
               <a class="subitem-lateral page-link" href="/resultados" data-page="resultados"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5Z M8 8h8 M8 12h8 M8 16h5"/></svg><span>Resultados</span></a>
               <a class="subitem-lateral page-link" href="/pagos" data-page="filas"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18 M9 3v18 M9 15h12"/></svg><span>Pagos y validación</span></a>
               <a class="subitem-lateral page-link" href="/integracion" data-page="integracion"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16 M16 3l4 4-4 4 M20 17H4 M8 13l-4 4 4 4"/></svg><span>Datos de integración</span></a>
+              <a class="subitem-lateral page-link" href="/historico" data-page="historico"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6 M3 3v6h6 M12 7v5l3 2"/></svg><span>Histórico de recibos</span></a>
               <span class="menu-label menu-label--actions">Acciones</span>
               <button class="action-button subitem-lateral sidebar-action" type="button" id="loadRowsButton">
                 Revisar Sheets
@@ -74,9 +75,9 @@
           <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18 M3 12h18 M3 18h18"/></svg>
         </button>
         <h1 class="barra-superior__titulo">Activadores Siesa</h1>
-        <div class="barra-superior__der header-context">
-          <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          <span>Sistemas contables</span>
+        <div class="barra-superior__der">
+          <div class="chip-usuario"><span class="avatar" id="authAvatar" aria-hidden="true">A</span><span class="chip-usuario__info"><span id="authUserEmail">Verificando sesión…</span><small>Acceso privado</small></span></div>
+          <button class="boton boton--plano boton--sm" id="logoutButton" type="button">Salir</button>
         </div>
       </header>
       <main class="contenido" aria-label="Activadores Sistemas Contables Siesa">
@@ -207,6 +208,32 @@
               </section>
             </details>
           </section>
+          <section class="workspace-page" id="historico" aria-labelledby="pageTitle" hidden>
+            <div class="history-metrics tarjetas">
+              <article class="tarjeta history-metric"><span class="tarjeta__rotulo">Confirmados por la integración</span><strong class="tarjeta__valor" id="historyConfirmed">—</strong></article>
+              <article class="tarjeta history-metric"><span class="tarjeta__rotulo">Sin confirmación</span><strong class="tarjeta__valor" id="historyUnconfirmed">—</strong></article>
+              <article class="tarjeta history-metric"><span class="tarjeta__rotulo">Posibles duplicados</span><strong class="tarjeta__valor" id="historyDuplicates">—</strong></article>
+              <article class="tarjeta history-metric"><span class="tarjeta__rotulo">Confirmados sin número devuelto</span><strong class="tarjeta__valor" id="historyWithoutNumber">—</strong></article>
+            </div>
+            <section class="panel history-controls">
+              <form class="filtros" id="historyFilters">
+                <label class="campo history-search"><span>Buscar</span><input name="search" type="search" maxlength="200" placeholder="Tercero, nombre, nota o recibo"></label>
+                <label class="campo"><span>Estado</span><select name="status"><option value="">Todos los estados</option><option value="confirmed">Confirmados</option><option value="unconfirmed">Sin confirmación</option><option value="rejected">Rechazados</option><option value="review">Por verificar</option></select></label>
+                <label class="campo"><span>Fuente</span><select name="source" id="historySource"><option value="all">Todas las fuentes</option></select></label>
+                <label class="history-check"><input name="duplicates" type="checkbox">Solo posibles duplicados</label>
+                <button class="boton boton--plano" id="historyFilterButton" type="submit">Filtrar</button>
+              </form>
+              <p class="campo__nota history-note">Una coincidencia no confirma un recibo duplicado en Siesa. Los reenvíos evitados se contabilizan aparte. El número queda vacío si el conector no lo devolvió.</p>
+            </section>
+            <p class="history-message" id="historyMessage" role="status">Preparando el histórico…</p>
+            <div class="tabla-wrap">
+              <table class="tabla history-table">
+                <thead><tr><th>Fecha del pago</th><th>Fuente</th><th>Tercero</th><th>Nombre</th><th class="tabla__num">Valor</th><th>Estado</th><th>Recibo Siesa</th><th>Nota / referencia</th><th>Revisión</th></tr></thead>
+                <tbody id="historyBody"><tr><td colspan="9" class="tabla__vacio">Sin consulta.</td></tr></tbody>
+              </table>
+            </div>
+            <nav class="paginacion" aria-label="Páginas del histórico"><button class="paginacion__btn" id="historyPrevious" type="button" disabled>Anterior</button><span class="paginacion__info" id="historyPage">Página 1</span><button class="paginacion__btn" id="historyNext" type="button" disabled>Siguiente</button></nav>
+          </section>
         </section>
       </main>
       <footer class="pie">
@@ -216,7 +243,9 @@
       </footer>
     </div>
     <div class="lateral-fondo" id="sidebarBackdrop" aria-hidden="true"></div>
-    <script src="/app.js?v=20261111-menu"></script>
-    <script src="/navigation.js?v=20261111-paginas"></script>
+    <script src="/session.js?v=20261112-login"></script>
+    <script src="/app.js?v=20261112-login"></script>
+    <script src="/history.js?v=20261112-login"></script>
+    <script src="/navigation.js?v=20261112-login"></script>
   </body>
 </html>

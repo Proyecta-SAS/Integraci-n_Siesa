@@ -21,6 +21,7 @@
     "/resultados": { id: "resultados", title: "Resultados", description: "Consulta la respuesta y los avisos de la última acción ejecutada." },
     "/pagos": { id: "filas", title: "Pagos y validación", description: "Revisa las filas de Sheets, sus referencias y el estado de cada pago." },
     "/integracion": { id: "integracion", title: "Datos de integración", description: "Origen, destino y detalle técnico de la conexión contable." },
+    "/historico": { id: "historico", title: "Histórico de recibos", description: "Consulta los envíos recuperados, sus confirmaciones y las coincidencias por revisar." },
   };
   const mobile = window.matchMedia("(max-width: 900px)");
   let expanded = true;
@@ -102,6 +103,7 @@
     pageTitle.textContent = route.title;
     pageDescription.textContent = route.description;
     document.title = `${route.title} | Siesa Alianza`;
+    if (route.id === "historico") window.dispatchEvent(new Event("siesa:history"));
     home.classList.toggle("item-lateral--activo", route.id === "resumen");
     groupButton.classList.toggle("item-lateral--activo", route.id !== "resumen");
     for (const link of pageLinks) {

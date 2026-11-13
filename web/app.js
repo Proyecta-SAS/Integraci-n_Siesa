@@ -294,12 +294,19 @@ async function summarizeSyncResult(data, mode) {
 }
 
 async function api(path, options = {}, activator = selectedActivator) {
+  const auth = globalThis.siesaAuth;
+  if (auth) await auth.ready;
   const separator = path.includes("?") ? "&" : "?";
   const response = await fetch(`${path}${separator}activator=${encodeURIComponent(activator)}`, {
     cache: "no-store",
-    headers: { "Accept": "application/json" },
     ...options,
+    headers: { "Accept": "application/json", ...(options.headers || {}),
+      ...(auth && options.method === "POST" ? { "X-CSRF-Token": auth.csrf } : {}) },
   });
+  if (response.status === 401 && auth) {
+    auth.redirect();
+    throw new Error("Debes iniciar sesión nuevamente.");
+  }
   const body = await response.text();
   let data;
   try {

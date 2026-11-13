@@ -4,6 +4,7 @@ import argparse
 import json
 import mimetypes
 import os
+from http.cookies import SimpleCookie
 from dataclasses import asdict, replace
 from decimal import Decimal
 from http import HTTPStatus
@@ -20,12 +21,16 @@ from .source import iter_payments
 from .state import SyncState
 from .sync import PaymentSyncService, SendCooldownError
 from .validation import PaymentValidator
+from .application import Application
+from .auth import COOKIE, SESSION_SECONDS
+from .database import DatabaseUnavailable
 
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = ROOT / "web"
 ACTIVATORS_FILE = ROOT / "config" / "siesa_activators.json"
 SEND_JOBS = SendJobs()
+APPLICATION: Application | None = None
 REQUIRED_SEND_ENV = (
     "SIESA_F_CIA",
     "SIESA_ID_CO",
@@ -371,12 +376,101 @@ def _activator_from_query(parsed: Any) -> str:
 
 
 class AppHandler(BaseHTTPRequestHandler):
+    def _app(self) -> Application:
+        if APPLICATION is None:
+            raise DatabaseUnavailable("La aplicacion aun no esta preparada")
+        return APPLICATION
+
+    def _redirect(self, target):
+        self.send_response(HTTPStatus.SEE_OTHER.value)
+        self.send_header("Location", target)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def _same_origin(self):
+        origin = urlparse(self.headers.get("Origin", ""))
+        return origin.scheme in {"http", "https"} and origin.netloc.lower() == self.headers.get("Host", "").lower()
+
+    def _require_user(self, parsed, *, write=False):
+        session = self._app().auth.session(self.headers.get("Cookie", ""))
+        if not session:
+            if parsed.path.startswith("/api/"):
+                self._json({"ok": False, "error": "Debes iniciar sesion"}, status=HTTPStatus.UNAUTHORIZED)
+            else:
+                from urllib.parse import urlencode
+                allowed = {"/resumen", "/resultados", "/pagos", "/integracion", "/historico"}
+                self._redirect("/login?" + urlencode({"next": parsed.path if parsed.path in allowed else "/resumen"}))
+            return None
+        if write and (not self._same_origin() or not self._app().auth.valid_csrf(session, self.headers.get("X-CSRF-Token", ""))):
+            self._json({"ok": False, "error": "Solicitud no autorizada; recarga la pagina"}, status=HTTPStatus.FORBIDDEN)
+            return None
+        return session
+
+    def _login(self):
+        if not self._same_origin() or self.headers.get("Content-Type", "").split(";")[0].strip() != "application/json":
+            self._json({"ok": False, "error": "Solicitud no autorizada"}, status=HTTPStatus.FORBIDDEN)
+            return
+        try:
+            size = int(self.headers.get("Content-Length", "0"))
+            if not 1 <= size <= 8192:
+                raise ValueError()
+            data = json.loads(self.rfile.read(size))
+            if not isinstance(data, dict):
+                raise ValueError()
+        except (ValueError, UnicodeError):
+            self._json({"ok": False, "error": "Datos de acceso no validos"}, status=HTTPStatus.BAD_REQUEST)
+            return
+        auth = self._app().auth
+        result = auth.login(data.get("email", ""), data.get("password", ""))
+        if not result:
+            self._json({"ok": False, "error": "Usuario o contraseña incorrectos. Si agotaste los intentos, espera 15 minutos."}, status=HTTPStatus.UNAUTHORIZED)
+            return
+        previous = auth.session(self.headers.get("Cookie", ""))
+        if previous:
+            auth.logout(previous)
+        self._json({"ok": True, "user": result["user"], "csrf_token": result["csrf_token"]},
+                   headers={"Set-Cookie": self._session_cookie(result["token"], SESSION_SECONDS)})
+
+    def _session_cookie(self, token, max_age):
+        cookie = SimpleCookie()
+        cookie[COOKIE] = token
+        cookie[COOKIE]["path"] = "/"
+        cookie[COOKIE]["httponly"] = True
+        cookie[COOKIE]["samesite"] = "Lax"
+        cookie[COOKIE]["max-age"] = max_age
+        if os.getenv("SIESA_ENV", "qa").lower() in {"prod", "production"}:
+            cookie[COOKIE]["secure"] = True
+        return cookie.output(header="").strip()
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         try:
             activator = _activator_from_query(parsed)
             if parsed.path == "/health":
+                if APPLICATION is not None:
+                    APPLICATION.db.ping()
                 self._json({"ok": True, "service": "activadores-siesa", "version": __version__})
+                return
+            public = {"/login", "/login.html", "/login.js", "/styles.css", "/logo_avanzar_mark.svg", "/assets/avanzar-logo-color.svg"}
+            if parsed.path in public:
+                self._static("/login.html" if parsed.path == "/login" else parsed.path)
+                return
+            session = self._require_user(parsed)
+            if not session:
+                return
+            if parsed.path == "/api/auth/me":
+                self._json({"ok": True, "user": {"id": session["id"], "email": session["email"]}, "csrf_token": session["csrf_token"]})
+                return
+            if parsed.path == "/api/history":
+                params = parse_qs(parsed.query)
+                source = params.get("source", ["all"])[0]
+                if source != "all":
+                    _activator_config(source)
+                result = self._app().ledger.query(activator=None if source == "all" else source, page=int(params.get("page", ["1"])[0]),
+                    search=params.get("search", [""])[0], status=params.get("status", [""])[0],
+                    duplicate_only=params.get("duplicates", ["0"])[0] == "1")
+                self._json({"ok": True, **result, "last_synced_at": self._app().archive.last_success, "sync_error": self._app().archive.error})
                 return
             if parsed.path == "/api/status":
                 self._json({"ok": True, "runtime": _redacted_runtime(_runtime_for_request(dry_run=True, activator=activator), activator)})
@@ -402,12 +496,26 @@ class AppHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "events": _audit_events(limit=limit, event_type=event_type, activator=activator)})
                 return
             self._static(parsed.path)
+        except DatabaseUnavailable:
+            self._json({"ok": False, "error": "La base de datos no esta disponible. Intenta nuevamente."}, status=HTTPStatus.SERVICE_UNAVAILABLE)
+        except ValueError as exc:
+            self._json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
         except Exception as exc:
             self._json({"ok": False, "error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         try:
+            if parsed.path == "/api/auth/login":
+                self._login()
+                return
+            session = self._require_user(parsed, write=True)
+            if not session:
+                return
+            if parsed.path == "/api/auth/logout":
+                self._app().auth.logout(session)
+                self._json({"ok": True}, headers={"Set-Cookie": self._session_cookie("", 0)})
+                return
             activator = _activator_from_query(parsed)
             source_row = _source_row_from_query(parsed)
             if parsed.path == "/api/sync/dry-run":
@@ -418,6 +526,8 @@ class AppHandler(BaseHTTPRequestHandler):
                            status=HTTPStatus.ACCEPTED)
                 return
             self._json({"ok": False, "error": "endpoint no encontrado"}, status=HTTPStatus.NOT_FOUND)
+        except DatabaseUnavailable:
+            self._json({"ok": False, "error": "La base de datos no esta disponible. Intenta nuevamente."}, status=HTTPStatus.SERVICE_UNAVAILABLE)
         except SendCooldownError as exc:
             self._json(
                 {
@@ -430,17 +540,20 @@ class AppHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self._json({"ok": False, "error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
-    def _json(self, data: dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
+    def _json(self, data: dict[str, Any], status: HTTPStatus = HTTPStatus.OK, headers=None) -> None:
         body = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
         self.send_response(status.value)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
     def _static(self, path: str) -> None:
-        page_paths = {"", "/", "/resumen", "/resultados", "/pagos", "/integracion"}
+        page_paths = {"", "/", "/resumen", "/resultados", "/pagos", "/integracion", "/historico"}
         relative = "index.html" if path in page_paths else path.lstrip("/")
         target = (WEB_ROOT / relative).resolve()
         if WEB_ROOT not in target.parents and target != WEB_ROOT:
@@ -454,6 +567,11 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_response(HTTPStatus.OK.value)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        if target.suffix == ".html":
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Referrer-Policy", "same-origin")
+            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -462,11 +580,14 @@ class AppHandler(BaseHTTPRequestHandler):
 
 
 def main(argv: list[str] | None = None) -> int:
+    global APPLICATION
     parser = argparse.ArgumentParser(description="Servidor local para la visual de Activadores Siesa.")
     parser.add_argument("--host", default=os.getenv("HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "4182")))
     args = parser.parse_args(argv)
 
+    load_env_file(ROOT / ".env", override=True)
+    APPLICATION = Application(ROOT)
     server = ThreadingHTTPServer((args.host, args.port), AppHandler)
     print(f"Activadores Siesa: http://{args.host}:{args.port}/")
     server.serve_forever()

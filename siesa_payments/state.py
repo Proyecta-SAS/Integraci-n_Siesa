@@ -55,10 +55,13 @@ class SyncState:
 
 
 class JsonlAuditLog:
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, environment: str | None = None) -> None:
         self.path = path
+        self.environment = environment
 
     def write(self, event: dict[str, Any]) -> None:
+        if self.environment:
+            event = {**event, "environment": self.environment}
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as file:
             file.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")

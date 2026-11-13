@@ -91,6 +91,9 @@ def _event(
         "identity_number": payment.identity_number,
         "amount": str(payment.amount),
         "payment_date": payment.payment_date.isoformat(),
+        "customer": " ".join(part for part in (payment.first_name, payment.last_name) if part).strip() or payment.contact,
+        "note": payment.note,
+        "method": payment.payment_method,
         "possible_duplicate": payment.duplicate_of is not None,
         "duplicate_of": payment.duplicate_of,
         "occurrence": payment.occurrence,
@@ -116,7 +119,7 @@ class PaymentSyncService:
         self.mapping = mapping
         self.validator = PaymentValidator(mapping.required_transaction_type)
         self.state = SyncState(runtime.state_file)
-        self.log = JsonlAuditLog(runtime.log_file)
+        self.log = JsonlAuditLog(runtime.log_file, environment=runtime.environment)
         self.client = client
         self.sheet_writer = sheet_writer
 

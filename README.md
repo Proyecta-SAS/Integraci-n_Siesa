@@ -233,8 +233,71 @@ Checklist minimo:
 - Ejecutar lote QA pequeno y comparar total, tercero, fecha, cuenta, medio de pago, concepto y centro de costo.
 - Activar produccion solo despues de verificar trazabilidad: referencias del payload, respuesta del HUB y recibo localizado en ERP. La API v2 no devuelve el numero de recibo.
 
+## Acceso privado y base de datos
+
+La interfaz y todas las API operativas requieren una sesion iniciada en `/login`.
+No existe registro publico. Las contrasenas se almacenan como hashes PBKDF2;
+la cookie de sesion es HttpOnly, SameSite y Secure en produccion. Las acciones
+POST requieren el token CSRF de la sesion y un origen valido.
+
+Instalar las dependencias del proyecto con `python -m pip install .`. Configurar
+`SIESA_DATABASE_URL` con la URL privada de PostgreSQL en produccion. En Railway
+se utiliza la referencia `${{Postgres.DATABASE_URL}}`; no exponer PostgreSQL por
+un dominio o proxy publico. El servicio comprueba la base antes de aceptar
+solicitudes y no permite usar SQLite cuando `SIESA_ENV` es `prod` o `production`.
+En desarrollo se admite `sqlite:///.state/application.db`.
+
+Antes del primer inicio, generar un hash mediante:
+
+```powershell
+python -m siesa_payments.manage hash-password
+```
+
+Configurar `SIESA_BOOTSTRAP_ADMIN_EMAIL` (usuario o correo) y
+`SIESA_BOOTSTRAP_ADMIN_PASSWORD_HASH` con ese resultado. El primer arranque crea
+la cuenta solo si no existen usuarios; reiniciar nunca cambia su contrasena.
+No guardar contrasenas en Git ni pasarlas como argumentos del comando. Para
+crear cuentas adicionales en el entorno conectado a la base:
+
+```powershell
+python -m siesa_payments.manage create-user --email contabilidad@empresa.com
+```
+
+La contrasena se solicita de forma interactiva. Tras cinco intentos incorrectos,
+la cuenta espera 15 minutos antes de admitir otro intento. Las sesiones duran
+ocho horas y cerrar sesion las revoca en la base de datos.
+
+## Historico y recuperacion
+
+`/historico` permite consultar por fuente, estado, texto y posibles duplicados,
+con paginas de 50 registros. Al arrancar, el servicio recupera los archivos de
+auditoria JSONL y de estado de las fuentes configuradas desde el volumen
+persistente. Antes de importarlos conserva copias originales en
+`history_migration_backups`, junto al archivo de estado. La importacion es
+repetible, conserva puntos de lectura y vuelve a actualizar el indice cada
+30 segundos. Las lineas completas no interpretables se registran como incidencias.
+
+Los archivos originales de estado y sus bloqueos siguen controlando los envios
+a Siesa. El indice SQL no los reemplaza ni los modifica. Recuperar el historico
+no llama al ERP ni reenvia recibos. Se puede repetir de forma administrativa con
+`python -m siesa_payments.manage recover`.
+
+Se recupera la evidencia que aun existe en los archivos disponibles, no un
+inventario completo del ERP. Un pago confirmado puede no tener numero de recibo
+porque el conector no lo devuelve. Un resultado sin confirmar conserva ese
+estado y exige conciliacion en Siesa. Los eventos de reenvio evitado se agrupan
+por llave del pago: no se cuentan como recibos nuevos.
+
+La etiqueta **Posible duplicado** refleja una advertencia original o una
+coincidencia de tercero, fecha, valor, nota y medio de pago compatible entre
+llaves distintas de la misma fuente. Requiere revision contable: no demuestra
+que haya dos documentos en el ERP, no cambia el estado confirmado y no agrega
+un bloqueo nuevo al flujo de integracion. Los registros antiguos sin ambiente
+documentado mantienen esa ausencia; no se les atribuye produccion por suposicion.
+
 ## Pruebas
 
 ```powershell
 python -m unittest discover -s tests
+node --test tests/web_app.test.cjs tests/sheets_writeback.test.cjs
 ```
