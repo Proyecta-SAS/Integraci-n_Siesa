@@ -79,6 +79,18 @@ class Auth:
         with self.db.transaction() as conn:
             return bool(conn.execute("SELECT id FROM app_users WHERE active=1 LIMIT 1").fetchone())
 
+    def reset_password(self, email, encoded):
+        email = normalize_email(email)
+        if not re.fullmatch(r"pbkdf2_sha256\$600000\$[a-f0-9]{48}\$[a-f0-9]{64}", encoded):
+            raise ValueError("Hash de contrasena no valido")
+        with self.db.transaction() as conn:
+            user = conn.execute("SELECT id FROM app_users WHERE email=? AND active=1", (email,)).fetchone()
+            if not user:
+                raise ValueError("Usuario administrador no encontrado")
+            conn.execute("UPDATE app_users SET password_hash=? WHERE id=?", (encoded, user["id"]))
+            conn.execute("DELETE FROM app_sessions WHERE user_id=?", (user["id"],))
+            conn.execute("DELETE FROM login_failures WHERE account_key=?", (digest_token(email),))
+
     def login(self, email: str, password: str):
         now = int(time.time())
         email = str(email).strip().lower()[:254]

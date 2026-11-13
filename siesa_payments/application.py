@@ -16,6 +16,8 @@ class Application:
         self.db.initialize()
         self.auth = Auth(self.db)
         self.auth.bootstrap(os.getenv("SIESA_BOOTSTRAP_ADMIN_EMAIL", ""), os.getenv("SIESA_BOOTSTRAP_ADMIN_PASSWORD_HASH", ""))
+        if os.getenv("SIESA_ADMIN_PASSWORD_RESET_HASH"):
+            self.auth.reset_password(os.getenv("SIESA_BOOTSTRAP_ADMIN_EMAIL", "admin"), os.environ["SIESA_ADMIN_PASSWORD_RESET_HASH"])
         if not self.auth.has_users():
             raise ValueError("Configura la cuenta inicial antes de iniciar el servicio")
         self.ledger = Ledger(self.db)
