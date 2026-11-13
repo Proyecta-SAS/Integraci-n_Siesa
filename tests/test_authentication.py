@@ -115,11 +115,11 @@ class AuthenticationHTTPTests(TestCase):
         return headers['Set-Cookie'].split(';')[0], data['csrf_token']
 
     def test_all_operational_and_history_pages_require_login(self):
-        for path in ('/resumen', '/resultados', '/pagos', '/integracion', '/historico', '/app.js', '/history.js'):
+        for path in ('/resumen', '/resultados', '/pagos', '/integracion', '/historico', '/alegra', '/configuracion', '/app.js', '/history.js', '/alegra.js'):
             status, headers, _ = self.request('GET', path)
             self.assertEqual(status, 303, path)
             self.assertTrue(headers['Location'].startswith('/login?'))
-        for path in ('/api/status', '/api/payments', '/api/preflight', '/api/audit', '/api/history', '/api/sync/job'):
+        for path in ('/api/status', '/api/payments', '/api/preflight', '/api/audit', '/api/history', '/api/sync/job', '/api/alegra/status'):
             self.assertEqual(self.request('GET', path)[0], 401, path)
         self.assertEqual(self.request('GET', '/login')[0], 200)
         self.assertEqual(self.request('GET', '/health')[0], 200)
@@ -143,7 +143,7 @@ class AuthenticationHTTPTests(TestCase):
             for attribute in ('HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/'):
                 self.assertIn(attribute, headers['Set-Cookie'])
         cookie, _ = self.login()
-        for path in ('/resumen', '/resultados', '/pagos', '/integracion', '/historico'):
+        for path in ('/resumen', '/resultados', '/pagos', '/integracion', '/historico', '/alegra', '/configuracion'):
             status, headers, _ = self.request('GET', path, cookie=cookie)
             self.assertEqual(status, 200)
             self.assertEqual(headers['Cache-Control'], 'no-store')
@@ -156,3 +156,28 @@ class AuthenticationHTTPTests(TestCase):
         credentials = {'email': EMAIL, 'password': PASSWORD}
         self.assertEqual(self.request('POST', '/api/auth/login', credentials, origin='https://evil.example')[0], 403)
         self.assertEqual(self.request('POST', '/api/auth/login', {'email': "' OR 1=1 --", 'password': PASSWORD}, origin=self.origin)[0], 401)
+
+    def test_alegra_uses_shared_authentication_csrf_and_separate_transport(self):
+        from unittest.mock import Mock
+        from siesa_payments.alegra import ACCOUNTS, AlegraActivators
+        sender = Mock()
+        app = web_server.APPLICATION
+        app.alegra = AlegraActivators(app.db, sender=sender,
+            endpoints={key: 'https://example.test/' + key for key in ACCOUNTS})
+        payload = {'tipo': 'alegra_antiguo', 'activador': 'ON'}
+        path = '/api/alegra/activate'
+        cookie, csrf = self.login()
+        with patch.object(web_server, 'start_send') as siesa_send:
+            self.assertEqual(self.request('POST', path, payload)[0], 401)
+            self.assertEqual(self.request('POST', path, payload, cookie=cookie, origin=self.origin)[0], 403)
+            self.assertEqual(self.request('POST', path, payload, cookie=cookie, csrf=csrf, origin='https://evil.example')[0], 403)
+            sender.assert_not_called()
+            self.assertEqual(self.request('POST', path, [], cookie=cookie, csrf=csrf, origin=self.origin)[0], 400)
+            self.assertEqual(self.request('POST', path, payload, cookie=cookie, csrf=csrf, origin=self.origin)[0], 200)
+            status, _, raw = self.request('POST', path, payload, cookie=cookie, csrf=csrf, origin=self.origin)
+            self.assertEqual(status, 429)
+            self.assertGreater(json.loads(raw)['retry_after_seconds'], 0)
+            sender.assert_called_once_with('https://example.test/alegra_antiguo', {'activador': 'ON'})
+            siesa_send.assert_not_called()
+        self.request('POST', '/api/auth/logout', cookie=cookie, csrf=csrf, origin=self.origin)
+        self.assertEqual(self.request('GET', '/api/alegra/status', cookie=cookie)[0], 401)

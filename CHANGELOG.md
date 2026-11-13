@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 - 2026-11-13
+
+- Integra las cuatro cuentas Alegra (Antiguo, Lidera, Alianza y Prosperar) en un módulo separado de Siesa, con la misma sesión y protección CSRF.
+- Conserva el payload original de los activadores y configura los cuatro webhooks HTTPS mediante variables de entorno del servidor.
+- Persiste una espera de 15 minutos por cuenta en la base de datos y evita dos envíos simultáneos, incluso entre sesiones diferentes.
+- Comparte navegación, configuración y temas; incorpora la marca vectorial Integración Siesa con el estilo corporativo de SAI Cartera.
+- Conserva el procesamiento de pagos, preflight, seguimiento de lotes e histórico Siesa. La entrada a Alegra no consulta Sheets.
+- Añade una demostración local aislada con pagos de ejemplo y activaciones simuladas, además de pruebas de transporte, concurrencia, sesión y CSRF.
+- Documenta las conexiones reales pendientes de configurar en docs/integracion_alegra.md. No incluye credenciales ni activa servicios externos durante las pruebas.
+
 ## 0.2.7 - 2026-11-09
 
 - Procesa los envios reales en segundo plano y responde HTTP 202 para evitar que un lote largo dependa de la conexion de cinco minutos del navegador.

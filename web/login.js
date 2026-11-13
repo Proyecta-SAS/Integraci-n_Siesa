@@ -16,7 +16,7 @@
       if (!response.ok || !data.ok) throw new Error(data.error || 'No se pudo iniciar sesión.');
       form.elements.password.value = '';
       const next = new URLSearchParams(location.search).get('next');
-      const allowed = ['/resumen', '/resultados', '/pagos', '/integracion', '/historico'];
+      const allowed = ['/resumen', '/resultados', '/pagos', '/integracion', '/historico', '/alegra', '/configuracion'];
       location.assign(allowed.includes(next) ? next : '/resumen');
     } catch (failure) {
       error.textContent = failure.message || 'No se pudo conectar. Intenta nuevamente.';

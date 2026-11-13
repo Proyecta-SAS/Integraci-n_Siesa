@@ -9,6 +9,9 @@ from typing import Any
 
 
 SCHEMA = (
+    """CREATE TABLE IF NOT EXISTS alegra_activations (
+        activator TEXT PRIMARY KEY, locked_until BIGINT NOT NULL DEFAULT 0,
+        attempt_token TEXT NOT NULL DEFAULT '')""",
     """CREATE TABLE IF NOT EXISTS app_users (
         id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
         active INTEGER NOT NULL DEFAULT 1, created_at BIGINT NOT NULL)""",

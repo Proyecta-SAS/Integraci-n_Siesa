@@ -17,6 +17,8 @@
   const pageTitle = document.querySelector("#pageTitle");
   const pageDescription = document.querySelector("#pageDescription");
   const routes = {
+    "/alegra": { id: "alegra", title: "Activadores Alegra", description: "Activa Antiguo, Lidera, Alianza y Prosperar con confirmación y espera por cuenta." },
+    "/configuracion": { id: "configuracion", title: "Configuración", description: "Apariencia y módulos de tu portal contable." },
     "/resumen": { id: "resumen", title: "Resumen operativo", description: "Estado de la conexión, pagos pendientes y pasos del proceso." },
     "/resultados": { id: "resultados", title: "Resultados", description: "Consulta la respuesta y los avisos de la última acción ejecutada." },
     "/pagos": { id: "filas", title: "Pagos y validación", description: "Revisa las filas de Sheets, sus referencias y el estado de cada pago." },
@@ -27,6 +29,7 @@
   let expanded = true;
   let drawerOpen = false;
   let previousOverflow = null;
+  let siesaStarted = false;
 
   function syncGroup() {
     const collapsed = !mobile.matches && document.body.classList.contains("lateral-colapsado");
@@ -102,18 +105,31 @@
     for (const page of pages) page.hidden = page.id !== route.id;
     pageTitle.textContent = route.title;
     pageDescription.textContent = route.description;
-    document.title = `${route.title} | Siesa Alianza`;
+    const siesaPage = !["alegra", "configuracion"].includes(route.id);
+    document.title = `${route.title} | Avanzar`;
+    const systemLabel = document.querySelector("#moduleSystemLabel");
+    if (systemLabel) systemLabel.textContent = siesaPage ? "Siesa Alianza" : route.id === "alegra" ? "Alegra" : "Portal contable";
+    document.querySelector("#envPill").hidden = !siesaPage;
+    if (!siesaPage) { expanded = false; syncGroup(); }
     if (route.id === "historico") window.dispatchEvent(new Event("siesa:history"));
     home.classList.toggle("item-lateral--activo", route.id === "resumen");
-    groupButton.classList.toggle("item-lateral--activo", route.id !== "resumen");
+    groupButton.classList.toggle("item-lateral--activo", siesaPage && route.id !== "resumen");
     for (const link of pageLinks) {
-      const current = link.dataset.page === route.id;
-      link.classList.toggle("subitem-lateral--activo", current && link !== home);
+      const current = link.dataset.page === route.id && (!link.dataset.account || window.location.hash === `#cuenta-${link.dataset.account}`);
+      link.classList.toggle("subitem-lateral--activo", current && link.classList.contains("subitem-lateral"));
+      if (link.classList.contains("item-lateral")) link.classList.toggle("item-lateral--activo", current);
       if (current) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     }
     window.scrollTo({ top: 0, behavior: "instant" });
     if (focusHeading) pageTitle.focus({ preventScroll: true });
+    window.dispatchEvent(new Event("portal:page"));
+    if (siesaPage && !siesaStarted) {
+      siesaStarted = true;
+      showModule().catch(error => {
+        setResult("No se pudo consultar el estado", error.message, ["Revisa la conexión y vuelve a consultar Sheets."], "warn");
+      });
+    }
   }
 
   function navigate(path, focusHeading = true) {
@@ -181,7 +197,4 @@
   renderPage();
   // A page refresh resumes the original read sequence. Moving between pages
   // retains in-memory results and never repeats a payment operation.
-  showModule().catch(error => {
-    setResult("No se pudo consultar el estado", error.message, ["Revisa la conexión y vuelve a consultar Sheets."], "warn");
-  });
 })();

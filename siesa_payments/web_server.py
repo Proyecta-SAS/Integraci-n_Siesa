@@ -24,6 +24,7 @@ from .validation import PaymentValidator
 from .application import Application
 from .auth import COOKIE, SESSION_SECONDS
 from .database import DatabaseUnavailable
+from .alegra import AlegraError
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -399,7 +400,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "error": "Debes iniciar sesion"}, status=HTTPStatus.UNAUTHORIZED)
             else:
                 from urllib.parse import urlencode
-                allowed = {"/resumen", "/resultados", "/pagos", "/integracion", "/historico"}
+                allowed = {"/resumen", "/resultados", "/pagos", "/integracion", "/historico", "/alegra", "/configuracion"}
                 self._redirect("/login?" + urlencode({"next": parsed.path if parsed.path in allowed else "/resumen"}))
             return None
         if write and (not self._same_origin() or not self._app().auth.valid_csrf(session, self.headers.get("X-CSRF-Token", ""))):
@@ -462,6 +463,9 @@ class AppHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/auth/me":
                 self._json({"ok": True, "user": {"id": session["id"], "email": session["email"]}, "csrf_token": session["csrf_token"]})
                 return
+            if parsed.path == "/api/alegra/status":
+                self._json(self._app().alegra.status())
+                return
             if parsed.path == "/api/history":
                 params = parse_qs(parsed.query)
                 source = params.get("source", ["all"])[0]
@@ -516,6 +520,19 @@ class AppHandler(BaseHTTPRequestHandler):
                 self._app().auth.logout(session)
                 self._json({"ok": True}, headers={"Set-Cookie": self._session_cookie("", 0)})
                 return
+            if parsed.path == "/api/alegra/activate":
+                try:
+                    size = int(self.headers.get("Content-Length", "0"))
+                    if not 1 <= size <= 2048:
+                        raise ValueError()
+                    if self.headers.get("Content-Type", "").split(";")[0].strip() != "application/json":
+                        raise ValueError()
+                    payload = json.loads(self.rfile.read(size))
+                except (ValueError, UnicodeError):
+                    self._json({"ok": False, "error": "Solicitud no válida"}, status=HTTPStatus.BAD_REQUEST)
+                    return
+                self._json(self._app().alegra.activate(payload))
+                return
             activator = _activator_from_query(parsed)
             source_row = _source_row_from_query(parsed)
             if parsed.path == "/api/sync/dry-run":
@@ -528,6 +545,9 @@ class AppHandler(BaseHTTPRequestHandler):
             self._json({"ok": False, "error": "endpoint no encontrado"}, status=HTTPStatus.NOT_FOUND)
         except DatabaseUnavailable:
             self._json({"ok": False, "error": "La base de datos no esta disponible. Intenta nuevamente."}, status=HTTPStatus.SERVICE_UNAVAILABLE)
+        except AlegraError as exc:
+            self._json({"ok": False, "status": "bloqueado" if exc.status == 429 else "error",
+                        "error": str(exc), "retry_after_seconds": exc.remaining}, status=HTTPStatus(exc.status))
         except SendCooldownError as exc:
             self._json(
                 {
@@ -553,7 +573,7 @@ class AppHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _static(self, path: str) -> None:
-        page_paths = {"", "/", "/resumen", "/resultados", "/pagos", "/integracion", "/historico"}
+        page_paths = {"", "/", "/resumen", "/resultados", "/pagos", "/integracion", "/historico", "/alegra", "/configuracion"}
         relative = "index.html" if path in page_paths else path.lstrip("/")
         target = (WEB_ROOT / relative).resolve()
         if WEB_ROOT not in target.parents and target != WEB_ROOT:

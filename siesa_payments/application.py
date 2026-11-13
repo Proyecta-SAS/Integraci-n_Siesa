@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from .auth import Auth
+from .alegra import AlegraActivators
 from .config import RuntimeConfig
 from .database import Database
 from .ledger import Archive, Ledger
@@ -15,6 +16,7 @@ class Application:
         self.db = database or Database.from_env()
         self.db.initialize()
         self.auth = Auth(self.db)
+        self.alegra = AlegraActivators(self.db)
         self.auth.bootstrap(os.getenv("SIESA_BOOTSTRAP_ADMIN_EMAIL", ""), os.getenv("SIESA_BOOTSTRAP_ADMIN_PASSWORD_HASH", ""))
         if os.getenv("SIESA_ADMIN_PASSWORD_RESET_HASH"):
             self.auth.reset_password(os.getenv("SIESA_BOOTSTRAP_ADMIN_EMAIL", "admin"), os.environ["SIESA_ADMIN_PASSWORD_RESET_HASH"])

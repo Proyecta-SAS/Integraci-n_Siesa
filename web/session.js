@@ -6,6 +6,7 @@
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.error || 'No se pudo verificar la sesión.');
     auth.csrf = data.csrf_token;
+    if (data.preview) document.querySelector('#portalPreviewNotice').hidden = false;
     document.querySelector('#authUserEmail').textContent = data.user.email;
     document.querySelector('#authAvatar').textContent = data.user.email[0].toUpperCase();
     return data;
