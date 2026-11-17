@@ -1,8 +1,13 @@
 # Siesa y Alegra en un solo portal
 
 `/alegra` integra las cuatro cuentas de Activadores-Alegras (Antiguo, Lidera,
-Alianza y Prosperar). Comparte el inicio de sesión y cierre de sesión de Siesa,
-la navegación lateral, el tema claro/oscuro y `/configuracion`.
+Alianza y Prosperar). Cada cuenta tiene su propio panel y muestra únicamente
+su tarjeta, con contorno negro y tamaño adaptable al espacio disponible.
+Los enlaces `/alegra#cuenta-antiguo`, `/alegra#cuenta-lidera`,
+`/alegra#cuenta-alianza` y `/alegra#cuenta-prosperar` permiten entrar directamente
+a cada panel. `/alegra` abre Antiguo por defecto. Comparte el inicio de sesión
+y cierre de sesión de Siesa, la navegación lateral, el tema claro/oscuro
+y `/configuracion`.
 
 El módulo Siesa conserva sus rutas, validaciones, preflight, simulación, envío
 de recibos e histórico. Entrar a Alegra no consulta Sheets ni ejecuta operaciones

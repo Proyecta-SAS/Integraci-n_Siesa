@@ -16,6 +16,7 @@
   const pages = [...document.querySelectorAll(".workspace-page")];
   const pageTitle = document.querySelector("#pageTitle");
   const pageDescription = document.querySelector("#pageDescription");
+  const alegraCards = [...document.querySelectorAll(".alegra-card")];
   const routes = {
     "/alegra": { id: "alegra", title: "Activadores Alegra", description: "Activa Antiguo, Lidera, Alianza y Prosperar con confirmación y espera por cuenta." },
     "/configuracion": { id: "configuracion", title: "Configuración", description: "Apariencia y módulos de tu portal contable." },
@@ -102,20 +103,36 @@
 
   function renderPage(focusHeading = false) {
     const route = routes[window.location.pathname] || routes["/resumen"];
+    let title = route.title;
+    let description = route.description;
+    if (route.id === "alegra") {
+      const selectedCard = alegraCards.find(card => `#${card.id}` === window.location.hash) || alegraCards[0];
+      if (window.location.hash !== `#${selectedCard.id}`) {
+        window.history.replaceState({}, "", `/alegra${window.location.search}#${selectedCard.id}`);
+      }
+      for (const card of alegraCards) {
+        card.hidden = card !== selectedCard;
+        card.classList.toggle("alegra-card--selected", card === selectedCard);
+      }
+      title = selectedCard.querySelector("h3").textContent;
+      description = "Activa esta cuenta con confirmación y una espera de 15 minutos entre órdenes.";
+    }
     for (const page of pages) page.hidden = page.id !== route.id;
-    pageTitle.textContent = route.title;
-    pageDescription.textContent = route.description;
+    pageTitle.textContent = title;
+    pageDescription.textContent = description;
     const siesaPage = !["alegra", "configuracion"].includes(route.id);
-    document.title = `${route.title} | Avanzar`;
+    document.title = `${title} | Avanzar`;
     const systemLabel = document.querySelector("#moduleSystemLabel");
-    if (systemLabel) systemLabel.textContent = siesaPage ? "Siesa Alianza" : route.id === "alegra" ? "Alegra" : "Portal contable";
+    if (systemLabel) systemLabel.textContent = siesaPage ? "Siesa Alianza" : route.id === "alegra" ? title : "Portal contable";
     document.querySelector("#envPill").hidden = !siesaPage;
     if (!siesaPage) { expanded = false; syncGroup(); }
     if (route.id === "historico") window.dispatchEvent(new Event("siesa:history"));
     home.classList.toggle("item-lateral--activo", route.id === "resumen");
     groupButton.classList.toggle("item-lateral--activo", siesaPage && route.id !== "resumen");
     for (const link of pageLinks) {
-      const current = link.dataset.page === route.id && (!link.dataset.account || window.location.hash === `#cuenta-${link.dataset.account}`);
+      const current = link.dataset.page === route.id && (route.id === "alegra"
+        ? window.location.hash === `#cuenta-${link.dataset.account}`
+        : !link.dataset.account);
       link.classList.toggle("subitem-lateral--activo", current && link.classList.contains("subitem-lateral"));
       if (link.classList.contains("item-lateral")) link.classList.toggle("item-lateral--activo", current);
       if (current) link.setAttribute("aria-current", "page");
@@ -133,7 +150,7 @@
   }
 
   function navigate(path, focusHeading = true) {
-    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    if (window.location.pathname + window.location.search + window.location.hash !== path) window.history.pushState({}, "", path);
     closeDrawer(false);
     renderPage(focusHeading);
   }
@@ -150,6 +167,7 @@
     closeDrawer(false);
     renderPage(true);
   });
+  window.addEventListener("hashchange", () => renderPage(true));
 
   for (const action of actions) {
     action.addEventListener("click", () => {

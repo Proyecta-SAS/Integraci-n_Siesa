@@ -39,7 +39,7 @@
       const { response, data } = await request('/api/alegra/status');
       if (!response.ok || !data.ok) throw new Error(data.error || 'No se pudo consultar Alegra.');
       for (const account of data.accounts) locks.set(account.id, { configured: account.configured, until: Date.now() + account.retry_after_seconds * 1000 });
-      showFeedback(data.preview ? 'Demostración local: puedes probar las cuentas sin enviar órdenes reales.' : 'Selecciona la cuenta contable que deseas activar.');
+      showFeedback(data.preview ? 'Demostración local: puedes probar esta cuenta sin enviar órdenes reales.' : 'Activa esta cuenta contable cuando estés listo.');
       renderLocks();
     } catch (error) { showFeedback(error.message, true); }
     finally { loading = false; }
@@ -79,9 +79,6 @@
   function onPage() {
     if (location.pathname !== '/alegra') return;
     loadStatus();
-    document.querySelectorAll('.alegra-card').forEach(card => card.classList.toggle('alegra-card--selected', '#' + card.id === location.hash));
-    const card = document.querySelector('.alegra-card--selected');
-    if (card) { card.scrollIntoView({ block: 'nearest' }); card.focus({ preventScroll: true }); }
   }
   window.addEventListener('portal:page', onPage);
   setInterval(renderLocks, 1000);

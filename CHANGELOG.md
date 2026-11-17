@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 - 2026-11-17
+
+- Separa Antiguo, Lidera, Alianza y Prosperar en paneles individuales: cada opción muestra únicamente la tarjeta de su cuenta y su nombre en el encabezado.
+- Amplía las tarjetas para aprovechar el ancho y la altura disponibles, con contorno negro, textos y botón de activación más grandes.
+- Conserva la cuenta seleccionada al recargar, navegar con atrás/adelante o abrir un enlace directo; actualiza la selección del menú lateral.
+- Mantiene la confirmación, la espera independiente de 15 minutos, la sesión y los webhooks configurados mediante variables de entorno.
+- Verifica los cuatro paneles en escritorio, móvil y tema oscuro, además de la correspondencia de los destinos con transporte interceptado y sin activaciones externas.
+
 ## 0.3.0 - 2026-11-13
 
 - Integra las cuatro cuentas Alegra (Antiguo, Lidera, Alianza y Prosperar) en un módulo separado de Siesa, con la misma sesión y protección CSRF.

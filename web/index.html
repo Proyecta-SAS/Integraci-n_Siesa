@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Avanzar | Siesa y Alegra</title>
     <link rel="stylesheet" href="/styles.css?v=20261112-login">
-    <link rel="stylesheet" href="/portal.css?v=20261113-siesa">
+    <link rel="stylesheet" href="/portal.css?v=20261117-cuentas-amplias">
   </head>
   <body class="app-ui siesa-ui">
     <aside class="lateral" id="sidebar" aria-label="Menú principal">
@@ -239,7 +239,6 @@
             <nav class="paginacion" aria-label="Páginas del histórico"><button class="paginacion__btn" id="historyPrevious" type="button" disabled>Anterior</button><span class="paginacion__info" id="historyPage">Página 1</span><button class="paginacion__btn" id="historyNext" type="button" disabled>Siguiente</button></nav>
           </section>
 <section class="workspace-page" id="alegra" aria-labelledby="pageTitle" hidden>
-  <div class="alegra-summary"><div class="tarjeta"><span class="tarjeta__rotulo">Cuentas contables</span><strong class="tarjeta__valor">4</strong><small>Activadores Alegra</small></div><div class="tarjeta"><span class="tarjeta__rotulo">Tiempo entre activaciones</span><strong class="tarjeta__valor">15 min</strong><small>Bloqueo independiente por cuenta</small></div><div class="tarjeta"><span class="tarjeta__rotulo">Confirmación</span><strong class="tarjeta__valor">Sí</strong><small>Antes de enviar cada orden</small></div></div>
   <p class="alegra-feedback" id="alegraFeedback" role="status">Consultando activadores…</p>
   <div class="alegra-cards"><article class="alegra-card" id="cuenta-antiguo" tabindex="-1"><div class="alegra-card-head"><span class="alegra-icon alegra-icon--antiguo"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-6 9 6M4 10h16M5 19h14M3 21h18M7 10v9m5-9v9m5-9v9"/></svg></span><div><h3>Alegra Antiguo</h3><p>Sistema contable Alegra</p></div></div><p class="alegra-card-description">Envía la orden de activación a esta cuenta contable.</p><p class="alegra-card-note">Confirmación requerida · Espera de 15 minutos</p><button class="boton boton--primario alegra-activate" data-alegra="alegra_antiguo" type="button" disabled>Consultando…</button></article><article class="alegra-card" id="cuenta-lidera" tabindex="-1"><div class="alegra-card-head"><span class="alegra-icon alegra-icon--lidera"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V9h5v11M14 20V4h5v16M3 20h18"/></svg></span><div><h3>Alegra Lidera</h3><p>Sistema contable Alegra</p></div></div><p class="alegra-card-description">Envía la orden de activación a esta cuenta contable.</p><p class="alegra-card-note">Confirmación requerida · Espera de 15 minutos</p><button class="boton boton--primario alegra-activate" data-alegra="alegra_lidera" type="button" disabled>Consultando…</button></article><article class="alegra-card" id="cuenta-alianza" tabindex="-1"><div class="alegra-card-head"><span class="alegra-icon alegra-icon--alianza"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 14 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 10a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-1 1"/></svg></span><div><h3>Alegra Alianza</h3><p>Sistema contable Alegra</p></div></div><p class="alegra-card-description">Envía la orden de activación a esta cuenta contable.</p><p class="alegra-card-note">Confirmación requerida · Espera de 15 minutos</p><button class="boton boton--primario alegra-activate" data-alegra="alegra_alianza" type="button" disabled>Consultando…</button></article><article class="alegra-card" id="cuenta-prosperar" tabindex="-1"><div class="alegra-card-head"><span class="alegra-icon alegra-icon--prosperar"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 16l5-5 4 3 7-9m-6 0h6v6"/></svg></span><div><h3>Alegra Prosperar</h3><p>Sistema contable Alegra</p></div></div><p class="alegra-card-description">Envía la orden de activación a esta cuenta contable.</p><p class="alegra-card-note">Confirmación requerida · Espera de 15 minutos</p><button class="boton boton--primario alegra-activate" data-alegra="alegra_prosperar" type="button" disabled>Consultando…</button></article></div><p class="campo__nota alegra-note">Estas activaciones pertenecen a Alegra. No crean recibos ni modifican los lotes de Siesa.</p></section>
 <section class="workspace-page" id="configuracion" aria-labelledby="pageTitle" hidden><div class="panel portal-settings"><h3>Apariencia</h3><p>La elección se guarda en este navegador.</p><div class="portal-theme-options"><button class="boton boton--plano" data-portal-theme="light" type="button" aria-pressed="true">☀ Claro</button><button class="boton boton--plano" data-portal-theme="dark" type="button" aria-pressed="false">◑ Oscuro</button></div></div><div class="panel portal-settings"><h3>Módulos del portal</h3><dl><dt>Siesa</dt><dd>Validación, preflight, recibos de caja, seguimiento de lotes e histórico.</dd><dt>Alegra</dt><dd>Antiguo, Lidera, Alianza y Prosperar. Confirmación y bloqueo de 15 minutos por cuenta.</dd><dt>Acceso</dt><dd>Ambos módulos comparten la sesión de usuario del portal.</dd></dl></div></section>
@@ -256,8 +255,8 @@
     <script src="/session.js?v=20261113-portal"></script>
     <script src="/app.js?v=20261112-login"></script>
     <script src="/history.js?v=20261112-login"></script>
-    <script src="/alegra.js?v=20261113"></script>
-    <script src="/navigation.js?v=20261113-portal"></script>
+    <script src="/alegra.js?v=20261117-cuentas"></script>
+    <script src="/navigation.js?v=20261117-cuentas"></script>
 
   </body>
 </html>
