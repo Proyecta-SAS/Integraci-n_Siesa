@@ -9,6 +9,8 @@ from .alegra import AlegraActivators
 from .config import RuntimeConfig
 from .database import Database
 from .ledger import Archive, Ledger
+from .avanzar import IntegrationConfig, Provisioning
+from .oidc import OIDC
 
 
 class Application:
@@ -16,6 +18,9 @@ class Application:
         self.db = database or Database.from_env()
         self.db.initialize()
         self.auth = Auth(self.db)
+        self.integration = IntegrationConfig.from_env()
+        self.provisioning = Provisioning(self.db, self.integration)
+        self.oidc = OIDC(self.db, self.auth, self.integration)
         self.alegra = AlegraActivators(self.db)
         self.auth.bootstrap(os.getenv("SIESA_BOOTSTRAP_ADMIN_EMAIL", ""), os.getenv("SIESA_BOOTSTRAP_ADMIN_PASSWORD_HASH", ""))
         if os.getenv("SIESA_ADMIN_PASSWORD_RESET_HASH"):

@@ -150,6 +150,11 @@
   }
 
   function navigate(path, focusHeading = true) {
+    if (new URLSearchParams(window.location.search).get('portal_embed') === '1') {
+      const target = new URL(path, window.location.origin);
+      target.searchParams.set('portal_embed', '1');
+      path = target.pathname + target.search + target.hash;
+    }
     if (window.location.pathname + window.location.search + window.location.hash !== path) window.history.pushState({}, "", path);
     closeDrawer(false);
     renderPage(focusHeading);

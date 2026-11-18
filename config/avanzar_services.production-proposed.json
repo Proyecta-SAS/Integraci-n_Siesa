@@ -1,0 +1,17 @@
+{
+  "_estado": "Propuesta local. No aplicar flags hasta registrar cliente, secretos y aprobar catalogos. Uso del realm DEV sobre la aplicacion productiva autorizado por el propietario el 2026-11-18.",
+  "SSO_HABILITADO": "false",
+  "SSO_EMISOR": "https://keycloak-dev-375092879765.us-central1.run.app/realms/avanzar-dev",
+  "SSO_CLIENTE_ID": "integracion-siesa-alegra-dev",
+  "SSO_URL_RETORNO": "https://avanzar-dev.avanzarsoluciones.com/?abrir=INTEGRACION_SIESA_ALEGRA",
+  "AVANZAR_URL_BASE": "https://siesa.avanzarsoluciones.com",
+  "AVANZAR_CODIGO_APLICACION": "INTEGRACION_SIESA_ALEGRA",
+  "AVANZAR_DOMINIOS_CORREO": "",
+  "AVANZAR_PERMITIR_DEV_EN_PROD": "true",
+  "PORTAL_EMBED_HABILITADO": "false",
+  "PORTAL_ORIGEN": "https://avanzar-dev.avanzarsoluciones.com",
+  "AVANZAR_SERVICES_ROLES_PERMITIDOS": "",
+  "_secretos_pendientes": ["SSO_SECRETO_CLIENTE", "AVANZAR_SERVICES_API_TOKEN"],
+  "_dominios_propuestos_pendientes_de_confirmacion": ["avanzarsoluciones.com", "avanzarsoluciones.co"],
+  "_perfiles_implementados_pendientes_de_aprobacion": ["consulta", "operador"]
+}

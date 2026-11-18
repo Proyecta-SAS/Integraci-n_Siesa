@@ -1,11 +1,17 @@
 (() => {
-  const redirect = () => location.assign('/login?next=' + encodeURIComponent(location.pathname));
+  const embedded = new URLSearchParams(location.search).get('portal_embed') === '1';
+  const redirect = () => location.assign(embedded ? '/resumen?portal_embed=1' : '/login?next=' + encodeURIComponent(location.pathname));
   const auth = { csrf: '', redirect };
   auth.ready = fetch('/api/auth/me', { credentials: 'same-origin', cache: 'no-store' }).then(async response => {
     if (response.status === 401) { redirect(); throw new Error('Debes iniciar sesión.'); }
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.error || 'No se pudo verificar la sesión.');
     auth.csrf = data.csrf_token;
+    auth.canOperate = !data.user.perfil_local || data.user.perfil_local === 'operador';
+    document.body.classList.toggle('perfil-consulta', !auth.canOperate);
+    if (data.portal_embed_enabled && embedded) document.body.classList.add('portal-embedded');
+    const returnLink = document.querySelector('#portalReturn');
+    if (returnLink) returnLink.hidden = !data.portal_embed_enabled;
     if (data.preview) document.querySelector('#portalPreviewNotice').hidden = false;
     document.querySelector('#authUserEmail').textContent = data.user.email;
     document.querySelector('#authAvatar').textContent = data.user.email[0].toUpperCase();

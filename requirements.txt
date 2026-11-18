@@ -1,2 +1,5 @@
 # Railpack installs dependencies from this file for the plain Python service.
 psycopg[binary]==3.3.9
+Authlib==1.9.9
+joserfc==1.8.0
+requests==2.34.2

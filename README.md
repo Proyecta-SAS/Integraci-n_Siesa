@@ -1,5 +1,9 @@
 # Integracion Siesa - Recibos de Caja
 
+Integración preparada con Avanzar Services: [ficha, contrato, configuración y pendientes](docs/integracion_avanzar_services.md).
+SSO y modo embebido permanecen desactivados hasta configurar cliente, secretos y accesos.
+La API de aprovisionamiento es independiente y no admite perfiles administrativos.
+
 Servicio para registrar automaticamente en Siesa HUB los pagos de clientes que llegan a una hoja operativa de Avanzar. El destino operativo confirmado para este flujo es `Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos`.
 
 ## Portal Siesa y Alegra (0.3.1)

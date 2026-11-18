@@ -23,3 +23,10 @@
 @media(min-width:901px){.app-ui.lateral-colapsado .lateral__identidad{display:none}}
 
 .app-ui .lateral__identidad .lateral__logo{width:172px;height:47px}
+/* Portal presentation changes no permissions; the backend checks every action. */
+.portal-embedded .lateral__identidad { display: none; }
+.portal-embedded .workspace { min-height: 100dvh; }
+.perfil-consulta #sendButton,
+.perfil-consulta #dryRunButton,
+.perfil-consulta [data-alegra] { display: none !important; }
+.portal-access { max-width: 40rem; margin: 10vh auto; padding: 2rem; }

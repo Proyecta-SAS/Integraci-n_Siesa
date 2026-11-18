@@ -109,11 +109,17 @@ class Auth:
                     (account_key, now))
                 return None
             conn.execute("DELETE FROM login_failures WHERE account_key=?", (account_key,))
-            conn.execute("DELETE FROM app_sessions WHERE expires_at<=?", (now,))
-            token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-            conn.execute("INSERT INTO app_sessions(token_hash,user_id,csrf_token,expires_at,created_at) VALUES(?,?,?,?,?)",
-                         (digest_token(token), user["id"], csrf, now + SESSION_SECONDS, now))
-            return {"token": token, "csrf_token": csrf, "user": {"id": user["id"], "email": user["email"]}}
+            return self.create_session(conn, user)
+
+    def create_session(self, conn, user, previous=None):
+        now = int(time.time())
+        conn.execute("DELETE FROM app_sessions WHERE expires_at<=?", (now,))
+        if previous:
+            conn.execute('DELETE FROM app_sessions WHERE token_hash=?', (previous['token_hash'],))
+        token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+        conn.execute("INSERT INTO app_sessions(token_hash,user_id,csrf_token,expires_at,created_at) VALUES(?,?,?,?,?)",
+                     (digest_token(token), user['id'], csrf, now + SESSION_SECONDS, now))
+        return {'token': token, 'csrf_token': csrf, 'user': {'id': user['id'], 'email': user['email']}}
 
     def session(self, cookie_header: str):
         try:
@@ -125,8 +131,10 @@ class Auth:
         except Exception:
             return None
         with self.db.transaction() as conn:
-            row = conn.execute("""SELECT s.token_hash,s.csrf_token,u.id,u.email FROM app_sessions s
-                JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1""",
+            row = conn.execute("""SELECT s.token_hash,s.csrf_token,u.id,u.email,
+                COALESCE(p.profile,'operador') AS profile FROM app_sessions s
+                JOIN app_users u ON u.id=s.user_id LEFT JOIN app_user_profiles p ON p.user_id=u.id
+                WHERE s.token_hash=? AND s.expires_at>? AND u.active=1""",
                 (digest_token(token), int(time.time()))).fetchone()
             return dict(row) if row else None
 

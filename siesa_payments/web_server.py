@@ -25,6 +25,7 @@ from .application import Application
 from .auth import COOKIE, SESSION_SECONDS
 from .database import DatabaseUnavailable
 from .alegra import AlegraError
+from .integration_http import IntegrationHTTP
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -376,7 +377,10 @@ def _activator_from_query(parsed: Any) -> str:
     return parse_qs(parsed.query).get("activator", ["alianza"])[0]
 
 
-class AppHandler(BaseHTTPRequestHandler):
+class AppHandler(IntegrationHTTP, BaseHTTPRequestHandler):
+    def _has_application(self):
+        return APPLICATION is not None
+
     def _app(self) -> Application:
         if APPLICATION is None:
             raise DatabaseUnavailable("La aplicacion aun no esta preparada")
@@ -390,6 +394,9 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _same_origin(self):
+        config = getattr(self._app(), 'integration', None)
+        if config and config.base_url:
+            return self.headers.get('Origin', '') == config.base_url
         origin = urlparse(self.headers.get("Origin", ""))
         return origin.scheme in {"http", "https"} and origin.netloc.lower() == self.headers.get("Host", "").lower()
 
@@ -399,12 +406,18 @@ class AppHandler(BaseHTTPRequestHandler):
             if parsed.path.startswith("/api/"):
                 self._json({"ok": False, "error": "Debes iniciar sesion"}, status=HTTPStatus.UNAUTHORIZED)
             else:
+                if self._app().integration.embed and parse_qs(parsed.query).get('portal_embed') == ['1']:
+                    self._integration_html('<h1>Tu sesion no esta disponible</h1><p>Abre el acceso en la ventana principal para continuar. Si el navegador bloquea las cookies incrustadas, usa la aplicacion directamente.</p><a href="/portal/iniciar-sso" target="_top">Ingresar con Avanzar</a>', status=401)
+                    return None
                 from urllib.parse import urlencode
                 allowed = {"/resumen", "/resultados", "/pagos", "/integracion", "/historico", "/alegra", "/configuracion"}
                 self._redirect("/login?" + urlencode({"next": parsed.path if parsed.path in allowed else "/resumen"}))
             return None
         if write and (not self._same_origin() or not self._app().auth.valid_csrf(session, self.headers.get("X-CSRF-Token", ""))):
             self._json({"ok": False, "error": "Solicitud no autorizada; recarga la pagina"}, status=HTTPStatus.FORBIDDEN)
+            return None
+        if session['profile'] not in {'operador', 'consulta'} or (write and parsed.path != '/api/auth/logout' and session['profile'] != 'operador'):
+            self._json({'ok': False, 'error': 'Tu perfil no permite esta operacion'}, status=HTTPStatus.FORBIDDEN)
             return None
         return session
 
@@ -438,22 +451,25 @@ class AppHandler(BaseHTTPRequestHandler):
         cookie[COOKIE] = token
         cookie[COOKIE]["path"] = "/"
         cookie[COOKIE]["httponly"] = True
-        cookie[COOKIE]["samesite"] = "Lax"
+        config = getattr(self._app(), 'integration', None)
+        cookie[COOKIE]["samesite"] = 'None' if config and config.embed else 'Lax'
         cookie[COOKIE]["max-age"] = max_age
-        if os.getenv("SIESA_ENV", "qa").lower() in {"prod", "production"}:
+        if os.getenv("SIESA_ENV", "qa").lower() in {"prod", "production"} or config and (config.sso or config.embed):
             cookie[COOKIE]["secure"] = True
         return cookie.output(header="").strip()
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         try:
+            if parsed.path in {'/api/v1/crear-usuarios', '/portal/iniciar-sso', '/sso/iniciar', '/sso/callback', '/portal/volver'} and self._integration_request(parsed):
+                return
             activator = _activator_from_query(parsed)
             if parsed.path == "/health":
                 if APPLICATION is not None:
                     APPLICATION.db.ping()
                 self._json({"ok": True, "service": "activadores-siesa", "version": __version__})
                 return
-            public = {"/login", "/login.html", "/login.js", "/styles.css", "/logo_avanzar_mark.svg", "/assets/avanzar-logo-color.svg"}
+            public = {"/login", "/login.html", "/login.js", "/sso-start.js", "/styles.css", "/logo_avanzar_mark.svg", "/assets/avanzar-logo-color.svg"}
             if parsed.path in public:
                 self._static("/login.html" if parsed.path == "/login" else parsed.path)
                 return
@@ -461,7 +477,8 @@ class AppHandler(BaseHTTPRequestHandler):
             if not session:
                 return
             if parsed.path == "/api/auth/me":
-                self._json({"ok": True, "user": {"id": session["id"], "email": session["email"]}, "csrf_token": session["csrf_token"]})
+                config = self._app().integration
+                self._json({"ok": True, "user": {"id": session["id"], "email": session["email"], 'perfil_local': session['profile']}, "csrf_token": session["csrf_token"], 'portal_embed_enabled': config.embed, 'sso_enabled': config.sso})
                 return
             if parsed.path == "/api/alegra/status":
                 self._json(self._app().alegra.status())
@@ -510,6 +527,8 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         try:
+            if parsed.path in {'/api/v1/crear-usuarios', '/portal/iniciar-sso', '/sso/iniciar', '/sso/callback', '/portal/volver'} and self._integration_request(parsed):
+                return
             if parsed.path == "/api/auth/login":
                 self._login()
                 return
@@ -584,14 +603,14 @@ class AppHandler(BaseHTTPRequestHandler):
             return
         content_type = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
         body = target.read_bytes()
+        if target.name == 'login.html' and self._app().integration.sso:
+            body = body.replace(b'<form id="loginForm">', b'<p><a href="/portal/iniciar-sso" target="_top">Ingresar con Avanzar Services</a></p><form id="loginForm">')
         self.send_response(HTTPStatus.OK.value)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("X-Content-Type-Options", "nosniff")
         if target.suffix == ".html":
             self.send_header("Cache-Control", "no-store")
-            self.send_header("Referrer-Policy", "same-origin")
-            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
         self.end_headers()
         self.wfile.write(body)
 

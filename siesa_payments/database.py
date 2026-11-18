@@ -9,6 +9,9 @@ from typing import Any
 
 
 SCHEMA = (
+    """CREATE TABLE IF NOT EXISTS integration_audit (
+        id TEXT PRIMARY KEY, request_id TEXT NOT NULL, result TEXT NOT NULL,
+        user_id TEXT NOT NULL DEFAULT '', created_at BIGINT NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS alegra_activations (
         activator TEXT PRIMARY KEY, locked_until BIGINT NOT NULL DEFAULT 0,
         attempt_token TEXT NOT NULL DEFAULT '')""",
@@ -18,6 +21,16 @@ SCHEMA = (
     """CREATE TABLE IF NOT EXISTS app_sessions (
         token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES app_users(id),
         csrf_token TEXT NOT NULL, expires_at BIGINT NOT NULL, created_at BIGINT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS app_user_profiles (
+        user_id TEXT PRIMARY KEY REFERENCES app_users(id), name TEXT NOT NULL,
+        profile TEXT NOT NULL, phone TEXT NOT NULL DEFAULT '')""",
+    """CREATE TABLE IF NOT EXISTS app_oidc_identities (
+        issuer TEXT NOT NULL, subject TEXT NOT NULL, user_id TEXT NOT NULL REFERENCES app_users(id),
+        created_at BIGINT NOT NULL, PRIMARY KEY(issuer,subject), UNIQUE(issuer,user_id))""",
+    """CREATE TABLE IF NOT EXISTS app_oidc_requests (
+        browser_hash TEXT PRIMARY KEY, csrf_hash TEXT NOT NULL, state TEXT UNIQUE,
+        nonce TEXT, verifier TEXT, created_at BIGINT NOT NULL, config_hash TEXT NOT NULL)""",
+    "CREATE UNIQUE INDEX IF NOT EXISTS user_normalized_email_idx ON app_users(lower(trim(email)))",
     """CREATE TABLE IF NOT EXISTS login_failures (
         account_key TEXT PRIMARY KEY, failures INTEGER NOT NULL, window_started BIGINT NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS ledger_events (
@@ -75,7 +88,7 @@ class Database:
         return cls(url)
 
     @contextmanager
-    def transaction(self):
+    def transaction(self, *, write=False):
         try:
             if self.postgres:
                 import psycopg
@@ -87,6 +100,8 @@ class Database:
                 raw = sqlite3.connect(path, timeout=15)
                 raw.row_factory = sqlite3.Row
                 raw.execute("PRAGMA foreign_keys=ON")
+                if write:
+                    raw.execute("BEGIN IMMEDIATE")
         except Exception as error:
             raise DatabaseUnavailable("La base de datos no esta disponible") from error
         try:
