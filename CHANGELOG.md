@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.0 - 2026-11-19
+
+- Incorpora el acceso corporativo mediante OpenID Connect y la vista embebida de Siesa y Alegra en Avanzar Services.
+- Añade la API de creación de usuarios con perfiles locales de consulta y operador. La activación requiere configurar las credenciales y los perfiles permitidos.
+
 ## 0.3.1 - 2026-11-17
 
 - Separa Antiguo, Lidera, Alianza y Prosperar en paneles individuales: cada opción muestra únicamente la tarjeta de su cuenta y su nombre en el encabezado.

@@ -6,7 +6,7 @@ La API de aprovisionamiento es independiente y no admite perfiles administrativo
 
 Servicio para registrar automaticamente en Siesa HUB los pagos de clientes que llegan a una hoja operativa de Avanzar. El destino operativo confirmado para este flujo es `Financiero > Cuentas x cobrar > Recibos de caja > Otros ingresos`.
 
-## Portal Siesa y Alegra (0.3.1)
+## Portal Siesa y Alegra (0.19.0)
 
 El portal reúne los recibos de caja Siesa y las cuatro cuentas de Activadores
 Alegra, con una sola sesión. Alegra tiene su propia pantalla `/alegra`, sus
